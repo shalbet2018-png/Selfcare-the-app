@@ -1,3 +1,4 @@
+import { View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 export type IconName =
@@ -7,7 +8,10 @@ export type IconName =
 export function Icon({ name, size = 22, color = '#24212B' }: { name: IconName; size?: number; color?: string }) {
   const p = { stroke: color, strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no">
+    // Decorative: hidden from screen readers. aria-hidden on a View works on Android, iOS and web,
+    // unlike importantForAccessibility, which web browsers don't understand.
+    <View aria-hidden style={{ width: size, height: size }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24">
       {name === 'home' && <Path {...p} d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />}
       {name === 'search' && <><Circle {...p} cx={11} cy={11} r={7} /><Path {...p} d="M20 20l-4-4" /></>}
       {name === 'calendar' && <><Rect {...p} x={3} y={5} width={18} height={16} rx={3} /><Path {...p} d="M3 10h18M8 3v4M16 3v4" /></>}
@@ -22,5 +26,6 @@ export function Icon({ name, size = 22, color = '#24212B' }: { name: IconName; s
       {name === 'wallet' && <><Rect {...p} x={3} y={6} width={18} height={14} rx={3} /><Path {...p} d="M16 13h2M3 10h18" /></>}
       {name === 'swap' && <Path {...p} d="M7 7h13l-3-3M17 17H4l3 3" />}
     </Svg>
+    </View>
   );
 }
