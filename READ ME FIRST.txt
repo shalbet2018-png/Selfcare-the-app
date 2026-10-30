@@ -1,0 +1,22 @@
+SELFCARE APP: RUN IT ON YOUR PHONE
+==================================
+
+1. On your phone, install "Expo Go" from the Play Store or the App Store.
+
+2. On this computer, double-click "Start Selfcare.bat" in this folder.
+   - The first time, it installs the app's packages (a few minutes).
+   - If Windows SmartScreen warns about the file, click "More info", then "Run anyway".
+   - If Windows asks about network access for Node.js, click "Allow".
+
+3. When the QR code appears:
+   - Android: open Expo Go and tap "Scan QR code".
+   - iPhone: open the Camera app and point it at the QR code.
+
+Your phone and this computer must be on the same Wi-Fi network.
+
+If the phone can't connect (for example on office or public Wi-Fi), close the
+window, open a terminal in this folder and run:   npx expo start --tunnel
+
+Needs Node.js 20 or newer from https://nodejs.org (the script checks for you).
+
+The code is the same as the GitHub repository selfcare-the-app.
