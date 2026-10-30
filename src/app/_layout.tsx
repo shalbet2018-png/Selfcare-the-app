@@ -8,7 +8,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Nav } from '@/components/nav';
-import { ToastProvider } from '@/lib/feedback';
+import { FeedbackProvider } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { StoreProvider, useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
@@ -31,7 +31,7 @@ function Shell() {
   if (!loaded) return null;
 
   return (
-    <ToastProvider>
+    <FeedbackProvider>
       <StatusBar style={biz ? 'light' : 'dark'} />
       <View style={{ flex: 1, flexDirection: phone ? 'column' : 'row', backgroundColor: biz ? C.night : C.pearl }}>
         {!phone && <Nav />}
@@ -40,7 +40,7 @@ function Shell() {
         </View>
         {phone && <Nav />}
       </View>
-    </ToastProvider>
+    </FeedbackProvider>
   );
 }
 

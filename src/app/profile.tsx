@@ -4,12 +4,13 @@ import { View } from 'react-native';
 import { CardGrid } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, T } from '@/components/ui';
-import { confirmAsync, useToast } from '@/lib/feedback';
+import { useConfirm, useToast } from '@/lib/feedback';
 import { useStore } from '@/lib/store';
 
 export default function Profile() {
   const { state, reset } = useStore();
   const toast = useToast();
+  const confirmAsync = useConfirm();
   const clear = async () => {
     if (await confirmAsync('Clear demo data?', 'This removes all bookings and business details on this device.', 'Clear')) {
       reset();

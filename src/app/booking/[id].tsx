@@ -8,7 +8,7 @@ import { StatusTag } from '@/components/status';
 import { Back, Btn, Glass, Lines, T } from '@/components/ui';
 import { STATUS_LABEL, stepsFor, whenText } from '@/lib/bookings';
 import { ARRIVED_CANCEL_FEE, money, PAYMENT_METHODS, SERVICE_FEE_LABEL } from '@/lib/config';
-import { confirmAsync, useToast } from '@/lib/feedback';
+import { useConfirm, useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
@@ -17,6 +17,7 @@ export default function BookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { state, updateBooking } = useStore();
   const toast = useToast();
+  const confirmAsync = useConfirm();
   const { wide } = useLayout();
   const b = state.bookings.find((x) => x.id === id);
   if (!b) return <NotFoundView />;
