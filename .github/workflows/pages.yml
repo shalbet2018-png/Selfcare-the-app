@@ -38,6 +38,8 @@ jobs:
           EXPO_BASE_URL: /${{ github.event.repository.name }}
       - run: node scripts/pages-extras.js pages /${{ github.event.repository.name }}
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: pages
