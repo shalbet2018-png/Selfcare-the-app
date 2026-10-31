@@ -1,8 +1,8 @@
 name: Build demo installers
 
 # Builds both apps, Selfcare (clients) and Selfcare for Business, for Android (.apk) and
-# Windows (.exe), attaches all four to a GitHub Release, and publishes the Selfcare web app
-# (for iPhone and any browser) to GitHub Pages.
+# Windows (.exe), and attaches all four to a GitHub Release.
+# The web app for iPhone and browsers is published separately by pages.yml.
 # Runs on every push to main, or by hand from the Actions tab ("Run workflow").
 on:
   push:
@@ -12,8 +12,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 # A new push waits for a running build instead of cancelling it.
 concurrency:
@@ -141,34 +139,3 @@ jobs:
             Selfcare-Business-Demo.apk
             Selfcare-Demo-Setup.exe
             Selfcare-Business-Demo-Setup.exe
-
-  pages:
-    name: Web app on GitHub Pages (iPhone and browsers)
-    runs-on: ubuntu-latest
-    # GitHub only allows Pages on public repos, or private repos on GitHub Pro/Team. This job is
-    # skipped until then: it runs by itself once the repo is public, or after you add a repository
-    # variable PAGES_ENABLED = true (Settings > Secrets and variables > Actions > Variables)
-    # and set Settings > Pages > Source to "GitHub Actions".
-    if: ${{ !github.event.repository.private || vars.PAGES_ENABLED == 'true' }}
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build the web app for its Pages address
-        run: npx expo export --platform web --output-dir pages
-        env:
-          CI: 1
-          EXPO_BASE_URL: /${{ github.event.repository.name }}
-      - run: node scripts/pages-extras.js pages /${{ github.event.repository.name }}
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: pages
-      - id: deploy
-        uses: actions/deploy-pages@v4

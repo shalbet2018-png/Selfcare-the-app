@@ -1,0 +1,45 @@
+name: Publish web app (GitHub Pages)
+
+# Publishes the Selfcare web app to https://<owner>.github.io/<repo>/ for iPhone and any browser.
+# Needs Settings > Pages > Source set to "GitHub Actions". Runs on every push to main, or by hand.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', '**.txt', 'Start Selfcare.bat', 'desktop/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    name: Web app on GitHub Pages (iPhone and browsers)
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the web app for its Pages address
+        run: npx expo export --platform web --output-dir pages
+        env:
+          CI: 1
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
+      - run: node scripts/pages-extras.js pages /${{ github.event.repository.name }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - id: deploy
+        uses: actions/deploy-pages@v4
