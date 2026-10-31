@@ -1,0 +1,59 @@
+name: Publish release from a build
+
+# Publishes the installers from an earlier "Build demo installers" run as a GitHub Release,
+# without rebuilding. Use it if the build succeeded but its release step didn't.
+# Actions tab > "Publish release from a build" > Run workflow > paste the run ID
+# (the number at the end of the run's address, e.g. .../actions/runs/41176976118).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: ID of the "Build demo installers" run to publish
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Publish the release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+      - name: Find that build's number and commit
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }} --jq '"number=\(.run_number)\nsha=\(.head_sha)"' >> "$GITHUB_OUTPUT"
+          ls -la
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: demo-${{ steps.run.outputs.number }}
+          target_commitish: ${{ steps.run.outputs.sha }}
+          name: Selfcare demo (build ${{ steps.run.outputs.number }})
+          make_latest: true
+          fail_on_unmatched_files: true
+          body: |
+            Demo builds of both apps, with sample providers. Bookings are saved on the device only.
+
+            | App | Android phones and tablets | Windows laptops and PCs |
+            | --- | --- | --- |
+            | **Selfcare** (book services) | `Selfcare-Demo.apk` | `Selfcare-Demo-Setup.exe` |
+            | **Selfcare for Business** (salons, spas, freelancers) | `Selfcare-Business-Demo.apk` | `Selfcare-Business-Demo-Setup.exe` |
+
+            **Android:** download the APK on the device and open it. Allow installing from your browser or Files app when asked.
+
+            **Windows:** run the setup file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the demo isn't code-signed yet).
+
+            **iPhone and iPad:** open https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ in Safari, tap **Share**, then **Add to Home Screen**.
+          files: |
+            Selfcare-Demo.apk
+            Selfcare-Business-Demo.apk
+            Selfcare-Demo-Setup.exe
+            Selfcare-Business-Demo-Setup.exe
