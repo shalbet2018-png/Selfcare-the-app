@@ -15,9 +15,10 @@ permissions:
   pages: write
   id-token: write
 
+# A new push waits for a running build instead of cancelling it.
 concurrency:
   group: release
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   android:
@@ -144,9 +145,11 @@ jobs:
   pages:
     name: Web app on GitHub Pages (iPhone and browsers)
     runs-on: ubuntu-latest
-    # Needs Pages switched on (Settings > Pages > Source: GitHub Actions). Private repos need a paid
-    # GitHub plan for Pages. Until then this job may fail without blocking the installers.
-    continue-on-error: true
+    # GitHub only allows Pages on public repos, or private repos on GitHub Pro/Team. This job is
+    # skipped until then: it runs by itself once the repo is public, or after you add a repository
+    # variable PAGES_ENABLED = true (Settings > Secrets and variables > Actions > Variables)
+    # and set Settings > Pages > Source to "GitHub Actions".
+    if: ${{ !github.event.repository.private || vars.PAGES_ENABLED == 'true' }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
