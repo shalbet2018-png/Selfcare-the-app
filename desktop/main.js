@@ -6,6 +6,8 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 const WEB_ROOT = path.join(__dirname, 'web');
+// Set by electron-builder.config.js when the installer is built.
+const BUSINESS = require('./package.json').selfcareVariant === 'business';
 const START_URL = 'app://selfcare/';
 
 // Serve the app from app://selfcare/ so its absolute paths (/_expo/..., /assets/...)
@@ -29,8 +31,8 @@ function createWindow() {
     height: 820,
     minWidth: 360,
     minHeight: 600,
-    title: 'Selfcare',
-    backgroundColor: '#F4EEF0',
+    title: BUSINESS ? 'Selfcare for Business' : 'Selfcare',
+    backgroundColor: BUSINESS ? '#221E27' : '#F4EEF0',
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true },
   });
@@ -62,7 +64,8 @@ function smokeTest(win) {
   win.webContents.once('did-finish-load', async () => {
     for (let i = 0; i < 60; i++) {
       const text = await win.webContents.executeJavaScript('document.body.innerText').catch(() => '');
-      if (text.includes('Time for you.')) {
+      const expected = BUSINESS ? 'Get found. Get booked. Get paid.' : 'Time for you.';
+      if (text.includes(expected)) {
         clearTimeout(giveUp);
         return finish(0, 'ok: home screen rendered');
       }

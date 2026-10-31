@@ -8,11 +8,13 @@ The layout adapts to the screen: a bottom tab bar on phones (under 700 px), an i
 
 Ready-made downloads are on the **[Releases page](https://github.com/shalbet2018-png/Selfcare-the-app/releases/latest)**. GitHub builds them automatically every time `main` changes (or run **Build demo installers** by hand from the Actions tab).
 
-| Device | Download | How to install |
-| --- | --- | --- |
-| Android phones and tablets | `Selfcare-Demo.apk` | Download on the device and open it. Allow installing from your browser or Files app when asked. |
-| Windows laptops and PCs | `Selfcare-Demo-Setup.exe` | Run it. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the demo isn't code-signed). |
-| iPhone and iPad | Web app: [shalbet2018-png.github.io/Selfcare-the-app](https://shalbet2018-png.github.io/Selfcare-the-app/) | Open it in Safari, tap **Share**, then **Add to Home Screen**. |
+There are two apps, built from this same code: **Selfcare** for clients booking services (light bloom icon), and **Selfcare for Business** for salons, spas and freelancers (dark bloom icon).
+
+| Device | Selfcare | Selfcare for Business | How to install |
+| --- | --- | --- | --- |
+| Android phones and tablets | `Selfcare-Demo.apk` | `Selfcare-Business-Demo.apk` | Download on the device and open it. Allow installing from your browser or Files app when asked. |
+| Windows laptops and PCs | `Selfcare-Demo-Setup.exe` | `Selfcare-Business-Demo-Setup.exe` | Run it. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the demo isn't code-signed). |
+| iPhone and iPad | Web app: [shalbet2018-png.github.io/Selfcare-the-app](https://shalbet2018-png.github.io/Selfcare-the-app/) | Same web app, Profile → Switch to Business | Open it in Safari, tap **Share**, then **Add to Home Screen**. |
 
 iPhones only install apps from the App Store or TestFlight, which needs a paid Apple Developer account, so for now the iPhone demo is the home-screen web app. The Android APK is signed with a demo key: fine for sharing directly, but the Play Store needs a proper signing key.
 
@@ -31,6 +33,12 @@ Then:
 
 - **Phone or tablet:** install **Expo Go** from the Play Store or App Store and scan the QR code in the terminal.
 - **Laptop or PC:** press `w` to open it in your browser.
+
+To run **Selfcare for Business** instead, set `APP_VARIANT=business` (on Windows: `set APP_VARIANT=business` first). When switching between the two apps, add `--clear` once so Expo rebuilds with the right name and icon:
+
+```bash
+APP_VARIANT=business npx expo start --clear
+```
 
 Other commands:
 
@@ -74,7 +82,8 @@ src/components/          Nav, background and bubbles, buttons, cards, inputs
 src/lib/                 config (fees), data (demo), store (saved state), theme, layout
 desktop/                 Windows desktop wrapper (Electron) used for the .exe installer
 scripts/pages-extras.js  Adds the home-screen icon and manifest to the GitHub Pages build
-assets/images/           App icon, Android adaptive icon, splash, favicon
+assets/brand/            Bloom icon artwork (SVG): light for Selfcare, dark for Business, plus the closed bud
+assets/images/           App icons, Android adaptive icons, splash buds, favicon (rendered from assets/brand)
 ```
 
 ## Settings to confirm
@@ -85,7 +94,7 @@ In `src/lib/config.ts`:
 - `TRAVEL_FEE_BASE`, `TRAVEL_FEE_PER_KM`: home-service travel pricing
 - `ARRIVED_CANCEL_FEE`: the inconvenience fee
 
-In `app.json`, `ios.bundleIdentifier` and `android.package` are placeholders (`com.selfcare.app`); pick your own before the first store build.
+App IDs are placeholders: `com.selfcare.app` (in `app.json`) and `com.selfcare.business` (in `app.config.js`). Pick your own before the first store build.
 
 ## Next steps
 

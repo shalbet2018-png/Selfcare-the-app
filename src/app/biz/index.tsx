@@ -10,6 +10,7 @@ import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { useStore, type Verification } from '@/lib/store';
 import { C, F } from '@/lib/theme';
+import { IS_BUSINESS_APP } from '@/lib/variant';
 
 const VERIFY_LABEL: Record<Verification, string> = {
   'not-started': 'Not started', submitted: 'Submitted', 'in-review': 'In review', approved: 'Approved',
@@ -37,7 +38,7 @@ export default function Dashboard() {
           <T v="lead" muted>List your services, set your own prices, and take shop bookings and home calls from one app.</T>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             <Btn kind="light" label="Register your business" href="/biz/register" />
-            <Btn kind="outline" icon="swap" label="Back to Selfcare" onPress={() => router.navigate('/')} />
+            {!IS_BUSINESS_APP && <Btn kind="outline" icon="swap" label="Back to Selfcare" onPress={() => router.navigate('/')} />}
           </View>
         </View>
         <CardGrid min={220} maxCols={3}>

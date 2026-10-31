@@ -1,7 +1,8 @@
 name: Build demo installers
 
-# Builds the Selfcare demo for Android (.apk) and Windows (.exe), attaches both to a
-# GitHub Release, and publishes the web app (for iPhone and any browser) to GitHub Pages.
+# Builds both apps, Selfcare (clients) and Selfcare for Business, for Android (.apk) and
+# Windows (.exe), attaches all four to a GitHub Release, and publishes the Selfcare web app
+# (for iPhone and any browser) to GitHub Pages.
 # Runs on every push to main, or by hand from the Actions tab ("Run workflow").
 on:
   push:
@@ -20,8 +21,16 @@ concurrency:
 
 jobs:
   android:
-    name: Android app (.apk)
+    name: Android (${{ matrix.label }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: client, label: Selfcare, file: Selfcare-Demo.apk }
+          - { variant: business, label: Selfcare for Business, file: Selfcare-Business-Demo.apk }
+    env:
+      APP_VARIANT: ${{ matrix.variant }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,16 +51,25 @@ jobs:
         working-directory: android
         # Phones and tablets only (ARM). Signed with Expo's debug key: fine for a demo, not for the Play Store.
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
-      - run: cp android/app/build/outputs/apk/release/app-release.apk Selfcare-Demo.apk
+      - run: cp android/app/build/outputs/apk/release/app-release.apk "${{ matrix.file }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: android
-          path: Selfcare-Demo.apk
+          name: android-${{ matrix.variant }}
+          path: ${{ matrix.file }}
           if-no-files-found: error
 
   windows:
-    name: Windows installer (.exe)
+    name: Windows (${{ matrix.label }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: client, label: Selfcare, file: Selfcare-Demo-Setup.exe, built: Selfcare-Demo-Setup-*.exe }
+          - { variant: business, label: Selfcare for Business, file: Selfcare-Business-Demo-Setup.exe, built: Selfcare-Business-Demo-Setup-*.exe }
+    env:
+      APP_VARIANT: ${{ matrix.variant }}
+      SELFCARE_VARIANT: ${{ matrix.variant }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,15 +96,16 @@ jobs:
         run: |
           $env:SELFCARE_SMOKE = '1'
           $env:SELFCARE_SMOKE_OUT = "$PWD\smoke.txt"
-          $p = Start-Process -FilePath 'release\win-unpacked\Selfcare.exe' -PassThru -Wait
+          $exe = Get-ChildItem 'release\win-unpacked\*.exe' | Select-Object -First 1
+          $p = Start-Process -FilePath $exe.FullName -PassThru -Wait
           if (Test-Path smoke.txt) { Get-Content smoke.txt }
           if ($p.ExitCode -ne 0) { throw "Desktop app check failed (exit $($p.ExitCode))" }
-      - run: Copy-Item desktop\release\Selfcare-Demo-Setup-*.exe Selfcare-Demo-Setup.exe
+      - run: Copy-Item "desktop\release\${{ matrix.built }}" "${{ matrix.file }}"
         shell: pwsh
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: Selfcare-Demo-Setup.exe
+          name: windows-${{ matrix.variant }}
+          path: ${{ matrix.file }}
           if-no-files-found: error
 
   release:
@@ -104,16 +123,23 @@ jobs:
           name: Selfcare demo (build ${{ github.run_number }})
           make_latest: true
           body: |
-            Demo build of Selfcare and Selfcare for Business, with sample providers. Bookings are saved on the device only.
+            Demo builds of both apps, with sample providers. Bookings are saved on the device only.
 
-            **Android phones and tablets:** download `Selfcare-Demo.apk` on the device and open it. Allow installing from your browser or Files app when asked.
+            | App | Android phones and tablets | Windows laptops and PCs |
+            | --- | --- | --- |
+            | **Selfcare** (book services) | `Selfcare-Demo.apk` | `Selfcare-Demo-Setup.exe` |
+            | **Selfcare for Business** (salons, spas, freelancers) | `Selfcare-Business-Demo.apk` | `Selfcare-Business-Demo-Setup.exe` |
 
-            **Windows laptops and PCs:** download `Selfcare-Demo-Setup.exe` and run it. Windows may show "Windows protected your PC": click **More info**, then **Run anyway** (the demo isn't code-signed yet).
+            **Android:** download the APK on the device and open it. Allow installing from your browser or Files app when asked.
 
-            **iPhone and iPad:** open the web app at https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ in Safari, tap **Share**, then **Add to Home Screen**.
+            **Windows:** run the setup file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the demo isn't code-signed yet).
+
+            **iPhone and iPad:** open https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ in Safari, tap **Share**, then **Add to Home Screen**.
           files: |
             Selfcare-Demo.apk
+            Selfcare-Business-Demo.apk
             Selfcare-Demo-Setup.exe
+            Selfcare-Business-Demo-Setup.exe
 
   pages:
     name: Web app on GitHub Pages (iPhone and browsers)

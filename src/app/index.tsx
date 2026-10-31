@@ -1,4 +1,4 @@
-import { Link, router } from 'expo-router';
+import { Link, Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
@@ -10,6 +10,7 @@ import { CITY } from '@/lib/config';
 import { CATEGORIES, MODE_OPTIONS, PROVIDERS } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
+import { IS_BUSINESS_APP } from '@/lib/variant';
 
 function greeting() {
   const h = new Date().getHours();
@@ -17,6 +18,12 @@ function greeting() {
 }
 
 export default function Home() {
+  // Selfcare for Business opens straight on its dashboard.
+  if (IS_BUSINESS_APP) return <Redirect href="/biz" />;
+  return <ClientHome />;
+}
+
+function ClientHome() {
   const { state, set } = useStore();
   const [q, setQ] = useState('');
   const nearby = PROVIDERS.filter((p) => p.modes.includes(state.serviceMode)).sort((a, b) => a.km - b.km);
