@@ -1,0 +1,145 @@
+name: Build demo installers
+
+# Builds the Selfcare demo for Android (.apk) and Windows (.exe), attaches both to a
+# GitHub Release, and publishes the web app (for iPhone and any browser) to GitHub Pages.
+# Runs on every push to main, or by hand from the Actions tab ("Run workflow").
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', '**.txt', 'Start Selfcare.bat']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android app (.apk)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+      - name: Build the APK
+        working-directory: android
+        # Phones and tablets only (ARM). Signed with Expo's debug key: fine for a demo, not for the Play Store.
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+      - run: cp android/app/build/outputs/apk/release/app-release.apk Selfcare-Demo.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: Selfcare-Demo.apk
+          if-no-files-found: error
+
+  windows:
+    name: Windows installer (.exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - name: Build the web version into the desktop app
+        run: npx expo export --platform web --output-dir desktop/web
+        env:
+          CI: 1
+      - name: Install desktop tools
+        working-directory: desktop
+        run: npm ci
+      - name: Build the installer
+        working-directory: desktop
+        run: npm run dist
+      - name: Check the app opens to the home screen
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          $env:SELFCARE_SMOKE = '1'
+          $env:SELFCARE_SMOKE_OUT = "$PWD\smoke.txt"
+          $p = Start-Process -FilePath 'release\win-unpacked\Selfcare.exe' -PassThru -Wait
+          if (Test-Path smoke.txt) { Get-Content smoke.txt }
+          if ($p.ExitCode -ne 0) { throw "Desktop app check failed (exit $($p.ExitCode))" }
+      - run: Copy-Item desktop\release\Selfcare-Demo-Setup-*.exe Selfcare-Demo-Setup.exe
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: Selfcare-Demo-Setup.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: demo-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Selfcare demo (build ${{ github.run_number }})
+          make_latest: true
+          body: |
+            Demo build of Selfcare and Selfcare for Business, with sample providers. Bookings are saved on the device only.
+
+            **Android phones and tablets:** download `Selfcare-Demo.apk` on the device and open it. Allow installing from your browser or Files app when asked.
+
+            **Windows laptops and PCs:** download `Selfcare-Demo-Setup.exe` and run it. Windows may show "Windows protected your PC": click **More info**, then **Run anyway** (the demo isn't code-signed yet).
+
+            **iPhone and iPad:** open the web app at https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ in Safari, tap **Share**, then **Add to Home Screen**.
+          files: |
+            Selfcare-Demo.apk
+            Selfcare-Demo-Setup.exe
+
+  pages:
+    name: Web app on GitHub Pages (iPhone and browsers)
+    runs-on: ubuntu-latest
+    # Needs Pages switched on (Settings > Pages > Source: GitHub Actions). Private repos need a paid
+    # GitHub plan for Pages. Until then this job may fail without blocking the installers.
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the web app for its Pages address
+        run: npx expo export --platform web --output-dir pages
+        env:
+          CI: 1
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
+      - run: node scripts/pages-extras.js pages /${{ github.event.repository.name }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,39 @@
+{
+  "name": "selfcare-desktop",
+  "productName": "Selfcare",
+  "version": "1.0.0",
+  "description": "Selfcare demo: book hair, lashes, nails and spa",
+  "author": "Selfcare",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "com.selfcare.app",
+    "productName": "Selfcare",
+    "copyright": "Selfcare demo",
+    "asar": false,
+    "files": ["main.js", "web/**/*"],
+    "directories": { "output": "release", "buildResources": "build" },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Selfcare",
+      "artifactName": "Selfcare-Demo-Setup-${version}.${ext}"
+    }
+  }
+}

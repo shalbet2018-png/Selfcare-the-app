@@ -2,17 +2,23 @@
 
 One codebase for **Selfcare** (clients booking self-care) and **Selfcare for Business** (salons, spas and freelancers taking bookings), built with [Expo](https://expo.dev) (SDK 58, React Native, Expo Router).
 
-It runs on:
-
-| Device | How |
-| --- | --- |
-| Android phones and tablets | Expo Go now; Play Store build with EAS |
-| iPhone and iPad | Expo Go now; App Store build with EAS |
-| Laptops and PCs | In the browser (web build) |
-
 The layout adapts to the screen: a bottom tab bar on phones (under 700 px), an icon rail on tablets, and a labelled sidebar on laptops and desktops (1100 px and up). Booking and profile pages go two-column on wide screens. Tablets work in portrait and landscape.
 
-## Run it
+## Install the demo
+
+Ready-made downloads are on the **[Releases page](https://github.com/shalbet2018-png/Selfcare-the-app/releases/latest)**. GitHub builds them automatically every time `main` changes (or run **Build demo installers** by hand from the Actions tab).
+
+| Device | Download | How to install |
+| --- | --- | --- |
+| Android phones and tablets | `Selfcare-Demo.apk` | Download on the device and open it. Allow installing from your browser or Files app when asked. |
+| Windows laptops and PCs | `Selfcare-Demo-Setup.exe` | Run it. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the demo isn't code-signed). |
+| iPhone and iPad | Web app: [shalbet2018-png.github.io/Selfcare-the-app](https://shalbet2018-png.github.io/Selfcare-the-app/) | Open it in Safari, tap **Share**, then **Add to Home Screen**. |
+
+iPhones only install apps from the App Store or TestFlight, which needs a paid Apple Developer account, so for now the iPhone demo is the home-screen web app. The Android APK is signed with a demo key: fine for sharing directly, but the Play Store needs a proper signing key.
+
+The demo uses sample providers, and bookings stay on the device.
+
+## Run it from the code
 
 Needs [Node.js](https://nodejs.org) 20 or newer.
 
@@ -66,6 +72,8 @@ src/app/                 Screens (Expo Router: each file is a route)
   biz/                   Selfcare for Business: dashboard, register, services, account
 src/components/          Nav, background and bubbles, buttons, cards, inputs
 src/lib/                 config (fees), data (demo), store (saved state), theme, layout
+desktop/                 Windows desktop wrapper (Electron) used for the .exe installer
+scripts/pages-extras.js  Adds the home-screen icon and manifest to the GitHub Pages build
 assets/images/           App icon, Android adaptive icon, splash, favicon
 ```
 
