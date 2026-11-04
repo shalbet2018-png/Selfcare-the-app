@@ -18,6 +18,9 @@ permissions:
 jobs:
   release:
     name: Publish the release
+    permissions:
+      contents: write
+      actions: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

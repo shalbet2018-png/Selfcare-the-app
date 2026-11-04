@@ -110,6 +110,8 @@ jobs:
   release:
     name: Publish the release
     needs: [android, windows]
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
