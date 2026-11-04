@@ -19,6 +19,9 @@ jobs:
   release:
     name: Publish the release
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -34,6 +37,7 @@ jobs:
           ls -la
       - uses: softprops/action-gh-release@v2
         with:
+          token: ${{ github.token }}
           tag_name: demo-${{ steps.run.outputs.number }}
           target_commitish: ${{ steps.run.outputs.sha }}
           name: Selfcare demo (build ${{ steps.run.outputs.number }})
