@@ -25,18 +25,29 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
           merge-multiple: true
-      - name: Find that build's number and commit
-        id: run
+      # Tag the newest commit on the default branch with the next unused demo-N.
+      # GitHub won't let the Actions token tag an older commit whose workflow files
+      # differ from today's, so tagging the build's own commit can fail with a 403.
+      - name: Pick the next free tag on the latest commit
+        id: tag
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
-          gh api repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }} --jq '"number=\(.run_number)\nsha=\(.head_sha)"' >> "$GITHUB_OUTPUT"
+          set -euo pipefail
           ls -la
+          branch=$(gh api "repos/$REPO" --jq .default_branch)
+          sha=$(gh api "repos/$REPO/commits/$branch" --jq .sha)
+          last=$(gh api --paginate "repos/$REPO/tags?per_page=100" --jq '.[].name' \
+            | { grep -E '^demo-[0-9]+$' || true; } | sed 's/^demo-//' | sort -n | tail -1)
+          next=$(( ${last:-0} + 1 ))
+          echo "Tagging $sha ($branch) as demo-$next"
+          { echo "number=$next"; echo "sha=$sha"; } >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: demo-${{ steps.run.outputs.number }}
-          target_commitish: ${{ steps.run.outputs.sha }}
-          name: Selfcare demo (build ${{ steps.run.outputs.number }})
+          tag_name: demo-${{ steps.tag.outputs.number }}
+          target_commitish: ${{ steps.tag.outputs.sha }}
+          name: Selfcare demo (build ${{ steps.tag.outputs.number }})
           make_latest: true
           fail_on_unmatched_files: true
           body: |
