@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from './background';
@@ -23,7 +24,7 @@ export function Screen({ theme = 'hair', children }: { theme?: BgTheme; children
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingTop: padTop, paddingBottom: padBottom, paddingHorizontal: padX }}
           keyboardShouldPersistTaps="handled">
-          <View style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', gap: 22 }}>{children}</View>
+          <Animated.View entering={FadeInDown.duration(420).reduceMotion(ReduceMotion.System)} style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', gap: 22 }}>{children}</Animated.View>
         </ScrollView>
       </View>
     </DarkCtx.Provider>

@@ -68,13 +68,13 @@ export default function Search() {
           </PillRow>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 6, maxWidth: '100%' }}>
             <T v="label" muted>Where</T>
             <PillRow label="Where">
               {WHERE.map(([v, l]) => <Pill key={v} label={l} selected={where === v} onPress={() => { setWhere(v); update({ mode: v }); }} />)}
             </PillRow>
           </View>
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 6, maxWidth: '100%' }}>
             <T v="label" muted>Sort by</T>
             <PillRow label="Sort by">
               {SORTS.map(([v, l]) => <Pill key={v} label={l} selected={sort === v} onPress={() => { setSort(v); update({ sort: v }); }} />)}

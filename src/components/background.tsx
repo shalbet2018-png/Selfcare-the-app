@@ -1,4 +1,4 @@
-// Soft blurred colour fields plus floating 3D bubbles, behind every screen.
+// Glowing colour fields plus floating glass orbs, behind every screen.
 import { useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming, ReduceMotion } from 'react-native-reanimated';
@@ -28,8 +28,8 @@ export function Bubble({ size, delay = 0, duration = 9000, opacity = 1 }: { size
             <Stop offset="1" stopColor="#fff" stopOpacity={0.3} />
           </RadialGradient>
           <RadialGradient id={`${id}s`} cx="70%" cy="75%" r="50%">
-            <Stop offset="0" stopColor="#6E5082" stopOpacity={0.14} />
-            <Stop offset="1" stopColor="#6E5082" stopOpacity={0} />
+            <Stop offset="0" stopColor="#E3C28A" stopOpacity={0.22} />
+            <Stop offset="1" stopColor="#E3C28A" stopOpacity={0} />
           </RadialGradient>
         </Defs>
         <Circle cx={50} cy={50} r={48} fill={`url(#${id}s)`} />
@@ -39,9 +39,25 @@ export function Bubble({ size, delay = 0, duration = 9000, opacity = 1 }: { size
   );
 }
 
+/** A soft glowing dot of colour, used as an accent inside cards. */
+export function Glow({ color, size }: { color: string; size: number }) {
+  const id = `glow${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <RadialGradient id={id} cx="50%" cy="50%" r="50%">
+          <Stop offset="0" stopColor={color} stopOpacity={0.85} />
+          <Stop offset="0.45" stopColor={color} stopOpacity={0.3} />
+          <Stop offset="1" stopColor={color} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={50} cy={50} r={50} fill={`url(#${id})`} />
+    </Svg>
+  );
+}
+
 export function Background({ theme }: { theme: BgTheme }) {
   const bg = BACKGROUNDS[theme];
-  const dark = theme === 'business';
   const uid = `bg${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: bg.base, overflow: 'hidden' }]} pointerEvents="none">
@@ -59,9 +75,9 @@ export function Background({ theme }: { theme: BgTheme }) {
           <Ellipse key={i} cx={x} cy={y} rx={60} ry={45} fill={`url(#${uid}${i})`} />
         ))}
       </Svg>
-      <View style={{ position: 'absolute', right: -40, top: 60 }}><Bubble size={160} opacity={dark ? 0.45 : 1} /></View>
-      <View style={{ position: 'absolute', right: 120, top: 190 }}><Bubble size={54} delay={1500} opacity={dark ? 0.45 : 1} /></View>
-      <View style={{ position: 'absolute', left: -24, bottom: '22%' }}><Bubble size={90} delay={800} duration={13000} opacity={dark ? 0.45 : 1} /></View>
+      <View style={{ position: 'absolute', right: -40, top: 60 }}><Bubble size={160} opacity={0.32} /></View>
+      <View style={{ position: 'absolute', right: 120, top: 190 }}><Bubble size={54} delay={1500} opacity={0.4} /></View>
+      <View style={{ position: 'absolute', left: -24, bottom: '22%' }}><Bubble size={90} delay={800} duration={13000} opacity={0.3} /></View>
     </View>
   );
 }

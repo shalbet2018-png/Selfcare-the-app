@@ -112,9 +112,9 @@ export default function Book() {
                 const on = m.id === pay;
                 return (
                   <Pressable key={m.id} role="radio" aria-checked={on} onPress={() => setPay(m.id)} style={{ flex: wide ? 1 : undefined }}>
-                    <Glass style={[{ borderRadius: 16, padding: 14, flexDirection: 'row', gap: 12, alignItems: 'center' }, on && { borderColor: C.sage, borderWidth: 2 }]}>
-                      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: on ? C.sage : '#9A93A0', alignItems: 'center', justifyContent: 'center' }}>
-                        {on && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.sage }} />}
+                    <Glass style={[{ borderRadius: 16, padding: 14, flexDirection: 'row', gap: 12, alignItems: 'center' }, on && { borderColor: C.gold, borderWidth: 2 }]}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: on ? C.gold : 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' }}>
+                        {on && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.gold }} />}
                       </View>
                       <View style={{ flexShrink: 1 }}>
                         <T v="strong">{m.label}</T>

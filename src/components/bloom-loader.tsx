@@ -30,7 +30,7 @@ const THEMES = {
     glow: '#E9C9D8',
   },
   dark: {
-    bg: '#221E27',
+    bg: '#120E17',
     outer: ['#D9C6FF', '#A88BD9'],
     centre: ['#EADCFF', '#C3A8F2'],
     heart: ['#FFF4DC', '#FFD28A', '#E9A95A'],

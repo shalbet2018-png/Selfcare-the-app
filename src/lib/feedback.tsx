@@ -38,27 +38,27 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         {children}
         <View pointerEvents="none" aria-live="polite" style={{ position: 'absolute', left: 16, right: 16, bottom: (phone ? 96 : 28) + insets.bottom, alignItems: 'center' }}>
           {msg ? (
-            <View style={{ backgroundColor: C.ink, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14, maxWidth: 480 }}>
-              <Text style={{ color: C.white, fontFamily: F.body, fontSize: 14 }}>{msg}</Text>
+            <View style={{ backgroundColor: C.pearl, borderWidth: 1, borderColor: 'rgba(227,194,138,0.45)', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14, maxWidth: 480, boxShadow: '0 12px 30px rgba(0,0,0,0.5)' }}>
+              <Text style={{ color: C.ink, fontFamily: F.body, fontSize: 14 }}>{msg}</Text>
             </View>
           ) : null}
         </View>
         {ask ? (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,24,0.45)', justifyContent: phone ? 'flex-end' : 'center', alignItems: 'center', padding: phone ? 0 : 24 }}>
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(6,4,9,0.68)', justifyContent: phone ? 'flex-end' : 'center', alignItems: 'center', padding: phone ? 0 : 24 }}>
             <Pressable accessibilityLabel="Dismiss" onPress={() => answer(false)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
             <View role="alertdialog" aria-label={ask.title} style={{
-              width: '100%', maxWidth: 440, backgroundColor: C.pearl, padding: 24, gap: 10,
+              width: '100%', maxWidth: 440, backgroundColor: C.pearl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 24, gap: 10,
               paddingBottom: 24 + (phone ? insets.bottom : 0),
               borderRadius: 24, borderBottomLeftRadius: phone ? 0 : 24, borderBottomRightRadius: phone ? 0 : 24,
             }}>
               <Text style={{ fontFamily: F.display500, fontSize: 21, color: C.ink }}>{ask.title}</Text>
               <Text style={{ fontFamily: F.body, fontSize: 15, lineHeight: 22, color: C.muted }}>{ask.message}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-                <Pressable role="button" onPress={() => answer(false)} style={{ flex: 1, minHeight: 48, borderRadius: 999, borderWidth: 1, borderColor: '#BDB4C4', alignItems: 'center', justifyContent: 'center' }}>
+                <Pressable role="button" onPress={() => answer(false)} style={{ flex: 1, minHeight: 48, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(245,239,244,0.4)', alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontFamily: F.body500, fontSize: 16, color: C.ink }}>Keep it</Text>
                 </Pressable>
-                <Pressable role="button" onPress={() => answer(true)} style={{ flex: 1, minHeight: 48, borderRadius: 999, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: F.body500, fontSize: 16, color: C.white }}>{ask.ok}</Text>
+                <Pressable role="button" onPress={() => answer(true)} style={{ flex: 1, minHeight: 48, borderRadius: 999, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: F.body600, fontSize: 16, color: C.onGold }}>{ask.ok}</Text>
                 </Pressable>
               </View>
             </View>

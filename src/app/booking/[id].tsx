@@ -62,9 +62,9 @@ export default function BookingDetail() {
                     <View style={{ alignItems: 'center', width: 16 }}>
                       <View style={{
                         width: 14, height: 14, borderRadius: 7, marginTop: 4, borderWidth: 2,
-                        borderColor: done || now ? C.sage : '#BDB4C4', backgroundColor: done ? C.sage : C.pearl,
+                        borderColor: done || now ? C.gold : 'rgba(255,255,255,0.28)', backgroundColor: done ? C.gold : C.pearl,
                       }} />
-                      {i < steps.length - 1 && <View style={{ flex: 1, width: 2, backgroundColor: done ? C.sage : '#D8D0DD', marginTop: 2 }} />}
+                      {i < steps.length - 1 && <View style={{ flex: 1, width: 2, backgroundColor: done ? C.gold : 'rgba(255,255,255,0.14)', marginTop: 2 }} />}
                     </View>
                     <T v={now ? 'strong' : 'body'} muted={!done && !now}>{STATUS_LABEL[s]}</T>
                   </View>
@@ -73,7 +73,7 @@ export default function BookingDetail() {
             </View>
           )}
           {active && (
-            <View style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#BDB4C4', borderRadius: 16, padding: 14, gap: 10 }}>
+            <View style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.28)', borderRadius: 16, padding: 14, gap: 10 }}>
               <T v="small" muted>Demo control: in the live app, the provider’s actions move this along.</T>
               <Btn small kind="ghost" label="Next status" onPress={() => updateBooking(b.id, { status: steps[Math.min(at + 1, steps.length - 1)] })} />
             </View>

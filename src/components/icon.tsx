@@ -5,7 +5,7 @@ export type IconName =
   | 'home' | 'search' | 'calendar' | 'user' | 'pin' | 'back' | 'star'
   | 'check' | 'grid' | 'list' | 'shield' | 'wallet' | 'swap';
 
-export function Icon({ name, size = 22, color = '#24212B' }: { name: IconName; size?: number; color?: string }) {
+export function Icon({ name, size = 22, color = '#F5EFF4' }: { name: IconName; size?: number; color?: string }) {
   const p = { stroke: color, strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     // Decorative: hidden from screen readers. aria-hidden on a View works on Android, iOS and web,

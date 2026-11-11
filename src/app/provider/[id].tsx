@@ -36,7 +36,7 @@ export default function ProviderScreen() {
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
             <T muted>{p.type === 'freelancer' ? 'Freelancer' : 'Business'} · {p.area} · {p.km.toFixed(1)} km · </T>
-            <Icon name="star" size={14} color={C.muted} />
+            <Icon name="star" size={14} color={C.gold} />
             <T muted>{p.rating.toFixed(1)}</T>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>

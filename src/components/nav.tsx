@@ -1,7 +1,7 @@
 // Responsive navigation: bottom tab bar on phones, icon rail on tablets,
 // labelled sidebar on laptops and desktops.
 import { router, usePathname, type Href } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from './icon';
@@ -28,19 +28,20 @@ export function Nav() {
   const { size } = useLayout();
   const biz = path.startsWith('/biz');
   const items = biz ? BUSINESS : CLIENT;
-  const fg = biz ? C.onNight : C.ink;
-  const fgMuted = biz ? C.onNightMuted : C.muted;
-  const onBg = biz ? 'rgba(255,255,255,0.1)' : 'rgba(36,33,43,0.07)';
+  const fg = C.gold;
+  const fgMuted = C.muted;
+  const onBg = C.goldSoft;
+  const blur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(18px)' } as object) : null;
 
   if (size === 'phone') {
     return (
-      <View role="navigation" aria-label="Main" style={{
+      <View role="navigation" aria-label="Main" style={[blur, {
         position: 'absolute', left: 12, right: 12, bottom: 12 + insets.bottom, height: 68, borderRadius: 24,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8,
-        backgroundColor: biz ? 'rgba(34,30,39,0.92)' : 'rgba(255,255,255,0.9)',
-        borderWidth: 1, borderColor: biz ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.9)',
-        shadowColor: '#281E32', shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 8,
-      }}>
+        backgroundColor: 'rgba(24,18,31,0.82)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+        boxShadow: '0 16px 36px rgba(0,0,0,0.5)',
+      }]}>
         {items.map((it) => {
           const on = it.match(path);
           return (
@@ -61,18 +62,18 @@ export function Nav() {
     <View role="navigation" aria-label="Main" style={{
       width: desktop ? 240 : 96, paddingTop: 28 + insets.top, paddingHorizontal: desktop ? 16 : 10, gap: 8,
       alignItems: desktop ? 'stretch' : 'center',
-      backgroundColor: biz ? 'rgba(34,30,39,0.96)' : 'rgba(255,255,255,0.78)',
-      borderRightWidth: 1, borderRightColor: biz ? 'rgba(255,255,255,0.1)' : 'rgba(36,33,43,0.08)',
+      backgroundColor: 'rgba(20,15,26,0.92)',
+      borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)',
     }}>
       <Pressable role="link" accessibilityLabel={biz ? 'Selfcare for Business home' : 'Selfcare home'} onPress={() => router.navigate(biz ? '/biz' : '/')} style={{ marginBottom: 18, paddingHorizontal: desktop ? 12 : 0 }}>
         {desktop ? (
           <View>
-            <Text style={{ fontFamily: F.display500, fontSize: 26, color: fg, letterSpacing: 0.5 }}>selfcare</Text>
+            <Text style={{ fontFamily: F.display500, fontSize: 26, color: C.ink, letterSpacing: 0.5 }}>selfcare</Text>
             {biz ? <Text style={{ fontFamily: F.body, fontSize: 13, color: fgMuted }}>for Business</Text> : null}
           </View>
         ) : (
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: biz ? C.onNight : C.ink, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: F.display500, fontSize: 28, color: biz ? C.night : C.white, marginTop: -3 }}>s</Text>
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontFamily: F.display500, fontSize: 28, color: C.onGold, marginTop: -3 }}>s</Text>
           </View>
         )}
       </Pressable>
@@ -85,7 +86,7 @@ export function Nav() {
               flexDirection: desktop ? 'row' : 'column', alignItems: 'center', gap: desktop ? 12 : 2,
               width: desktop ? undefined : 72, minHeight: desktop ? 48 : 64, paddingHorizontal: desktop ? 14 : 0,
               justifyContent: desktop ? 'flex-start' : 'center', borderRadius: 14,
-              backgroundColor: on ? onBg : hovered ? (biz ? 'rgba(255,255,255,0.05)' : 'rgba(36,33,43,0.04)') : 'transparent',
+              backgroundColor: on ? onBg : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
             })}>
             <Icon name={it.icon} color={on ? fg : fgMuted} />
             <Text style={{ fontSize: desktop ? 15 : 12, fontFamily: on ? F.body600 : F.body, color: on ? fg : fgMuted }}>{it.label}</Text>

@@ -24,7 +24,7 @@ export function PhotoPlaceholder({ category, height, label = 'Photo', radius = 0
         </Defs>
         <Rect x={0} y={0} width={10} height={10} fill={`url(#${gid})`} />
       </Svg>
-      <Text style={{ fontFamily: F.body, fontSize: 12, color: C.ink }}>{label}</Text>
+      <Text style={{ fontFamily: F.body500, fontSize: 11, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
     </View>
   );
 }
@@ -42,13 +42,13 @@ export function ProviderCard({ p }: { p: Provider }) {
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <T v="small" muted>{p.area} · {p.km.toFixed(1)} km · </T>
-              <Icon name="star" size={13} color={C.muted} />
+              <Icon name="star" size={13} color={C.gold} />
               <T v="small" muted>{p.rating.toFixed(1)}</T>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {p.modes.map((m) => <Chip key={m} label={m === 'shop' ? 'At the shop' : 'Comes to you'} />)}
             </View>
-            <T v="small">From <Text style={{ fontFamily: F.body600 }}>{money(fromPrice(p))}</Text></T>
+            <T v="small" muted>From <Text style={{ fontFamily: F.body600, color: C.gold }}>{money(fromPrice(p))}</Text></T>
           </View>
         </Glass>
       </Pressable>

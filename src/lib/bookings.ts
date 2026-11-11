@@ -10,12 +10,12 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<BookingStatus, [string, string]> = {
-  requested: ['#F4E3C9', '#5C3D0E'],
-  'on-the-way': ['#F4E3C9', '#5C3D0E'],
-  arrived: ['#F4E3C9', '#5C3D0E'],
-  confirmed: ['#DCEBE4', '#234A40'],
-  done: ['#DCEBE4', '#234A40'],
-  cancelled: ['#EFD9DC', '#6B2430'],
+  requested: ['rgba(227,194,138,0.16)', '#EBD3A6'],
+  'on-the-way': ['rgba(227,194,138,0.16)', '#EBD3A6'],
+  arrived: ['rgba(227,194,138,0.16)', '#EBD3A6'],
+  confirmed: ['rgba(143,211,188,0.16)', '#A6E3CE'],
+  done: ['rgba(143,211,188,0.16)', '#A6E3CE'],
+  cancelled: ['rgba(240,130,150,0.16)', '#F5ABB8'],
 };
 
 export function whenText(b: Booking) {

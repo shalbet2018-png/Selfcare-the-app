@@ -2,6 +2,7 @@ import { Link, Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { Glow } from '@/components/background';
 import { Icon } from '@/components/icon';
 import { CardGrid, ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
@@ -9,7 +10,7 @@ import { Btn, Glass, Segmented, T } from '@/components/ui';
 import { CITY } from '@/lib/config';
 import { CATEGORIES, MODE_OPTIONS, PROVIDERS } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { C, CATEGORY_GLOW, F } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
 
 function greeting() {
@@ -43,7 +44,7 @@ function ClientHome() {
             returnKeyType="search"
             accessibilityLabel="Search services"
             placeholder="Braids, gel nails, lash fill…"
-            placeholderTextColor="#6E6875"
+            placeholderTextColor="#8E8499"
             style={{ flex: 1, minWidth: 0, minHeight: 44, fontFamily: F.body, fontSize: 16, color: C.ink }}
           />
           <Btn label="Search" onPress={search} style={{ borderRadius: 14, minHeight: 44 }} />
@@ -57,7 +58,8 @@ function ClientHome() {
           {CATEGORIES.map((c) => (
             <Link key={c.id} href={{ pathname: '/search', params: { cat: c.id } }} asChild>
               <Pressable role="link" style={{ flex: 1 }}>
-                <Glass style={{ padding: 16, minHeight: 100, justifyContent: 'flex-end', gap: 2, borderRadius: 20, flex: 1 }}>
+                <Glass style={{ padding: 16, minHeight: 116, justifyContent: 'flex-end', gap: 2, borderRadius: 20, flex: 1, overflow: 'hidden' }}>
+                  <View style={{ position: 'absolute', right: -26, top: -26 }}><Glow color={CATEGORY_GLOW[c.id] ?? C.gold} size={104} /></View>
                   <T v="h3" style={{ fontFamily: F.display400 }}>{c.label}</T>
                   <T v="small" muted>{c.blurb}</T>
                 </Glass>
@@ -70,7 +72,7 @@ function ClientHome() {
       <View style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <T v="h2">{state.serviceMode === 'home' ? 'Can come to you' : 'Near you'}</T>
-          <Link href="/search"><T v="small" style={{ textDecorationLine: 'underline' }}>See all</T></Link>
+          <Link href="/search"><T v="small" accent>See all</T></Link>
         </View>
         <CardGrid>{nearby.map((p) => <ProviderCard key={p.id} p={p} />)}</CardGrid>
       </View>

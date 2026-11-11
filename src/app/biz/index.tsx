@@ -79,8 +79,8 @@ export default function Dashboard() {
             </View>
             <T v="h2">{req.service}</T>
             <T muted>{req.client} · {req.km.toFixed(1)} km away · {req.mins} min</T>
-            <View style={{ backgroundColor: C.white, borderRadius: 16, padding: 14 }}>
-              <Lines onCard rows={[
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 14 }}>
+              <Lines rows={[
                 { label: 'Your price', value: money(req.price) },
                 { label: 'Travel fee (by distance)', value: money(travelFee(req.km)) },
                 { label: 'You receive', value: money(req.price + travelFee(req.km)), total: true },
@@ -114,11 +114,11 @@ export default function Dashboard() {
           onPress={() => setBusiness({ online: !biz.online })}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 20, borderRadius: 999,
-            borderWidth: 1, borderColor: biz.online ? '#DCEBE4' : 'rgba(255,255,255,0.25)',
-            backgroundColor: biz.online ? '#DCEBE4' : 'rgba(255,255,255,0.07)', opacity: approved ? 1 : 0.5,
+            borderWidth: 1, borderColor: biz.online ? C.sage : 'rgba(255,255,255,0.25)',
+            backgroundColor: biz.online ? 'rgba(143,211,188,0.16)' : 'rgba(255,255,255,0.07)', opacity: approved ? 1 : 0.5,
           }}>
-          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: biz.online ? '#2F8A6B' : '#9A93A0' }} />
-          <Text style={{ fontFamily: F.body500, fontSize: 16, color: biz.online ? '#234A40' : C.onNight }}>{biz.online ? 'Online' : 'Offline'}</Text>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: biz.online ? C.sage : '#9A93A0' }} />
+          <Text style={{ fontFamily: F.body500, fontSize: 16, color: biz.online ? C.sage : C.onNight }}>{biz.online ? 'Online' : 'Offline'}</Text>
         </Pressable>
       </View>
 
