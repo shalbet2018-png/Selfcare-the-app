@@ -1,6 +1,6 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Jost_300Light, Jost_400Regular, Jost_500Medium, useFonts } from '@expo-google-fonts/jost';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -14,12 +14,15 @@ import { FeedbackProvider } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { StoreProvider, useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
+import { IS_BUSINESS_APP } from '@/lib/variant';
 
 SplashScreen.preventAutoHideAsync();
 
 function Shell() {
   const { phone } = useLayout();
   const { ready } = useStore();
+  const onBusinessScreen = usePathname().startsWith('/biz');
+  const business = IS_BUSINESS_APP || onBusinessScreen;
   const [fontsLoaded, fontError] = useFonts({
     Jost_300Light, Jost_400Regular, Jost_500Medium, Inter_400Regular, Inter_500Medium, Inter_600SemiBold,
   });
@@ -60,7 +63,7 @@ function Shell() {
       )}
       {!loaderGone && (
         <Animated.View pointerEvents={loaded && bloomed ? 'none' : 'auto'} style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, loaderStyle]}>
-          <BloomLoader dark onBloomed={onBloomed} />
+          <BloomLoader business={business} onBloomed={onBloomed} />
         </Animated.View>
       )}
     </View>

@@ -1,5 +1,5 @@
 // Loading screen: the bud from the app icon opens petal by petal, then pulses gently
-// until the app is ready. Light for Selfcare, dark for Selfcare for Business.
+// until the app is ready. Gold for Selfcare, lavender for Selfcare for Business.
 import { useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -22,17 +22,18 @@ const DRAW_ORDER = [0, 4, 1, 3, 2]; // outer petals behind, centre petal in fron
 const BLOOM_MS = 1100;
 
 const THEMES = {
-  light: {
-    bg: '#F4EEF0',
-    outer: ['#F8F0FF', '#CDB6E4'],
-    centre: ['#FFFFFF', '#EDBFCF'],
-    heart: ['#FFFFFF', '#F6EEF3', '#D9C6D3'],
-    glow: '#E9C9D8',
+  // Colours match scripts/render-brand.py, which draws the icons and splash buds.
+  client: {
+    bg: '#120E17',
+    outer: ['#F0D9AC', '#BF9257'],
+    centre: ['#FFF9EC', '#E9C88F'],
+    heart: ['#FFF3F5', '#F2B4C4', '#C46F8A'],
+    glow: '#E3C28A',
   },
-  dark: {
+  business: {
     bg: '#120E17',
     outer: ['#D9C6FF', '#A88BD9'],
-    centre: ['#EADCFF', '#C3A8F2'],
+    centre: ['#F1E8FF', '#C9B0F4'],
     heart: ['#FFF4DC', '#FFD28A', '#E9A95A'],
     glow: '#CDB4FF',
   },
@@ -74,8 +75,8 @@ function Petal({ index, open, k, colors, opacity }: {
   );
 }
 
-export function BloomLoader({ dark = false, size = 200, onBloomed }: { dark?: boolean; size?: number; onBloomed?: () => void }) {
-  const t = dark ? THEMES.dark : THEMES.light;
+export function BloomLoader({ business = false, size = 200, onBloomed }: { business?: boolean; size?: number; onBloomed?: () => void }) {
+  const t = business ? THEMES.business : THEMES.client;
   const reduceMotion = useReducedMotion();
   const open = useSharedValue(reduceMotion ? 1 : 0);
   const pulse = useSharedValue(0);
@@ -124,8 +125,8 @@ export function BloomLoader({ dark = false, size = 200, onBloomed }: { dark?: bo
               <Stop offset="1" stopColor={t.heart[2]} />
             </RadialGradient>
           </Defs>
-          <Circle cx={70} cy={86} r={7.5} fill={`url(#${hid})`} stroke={dark ? 'none' : '#FFFFFF'} strokeWidth={1} />
-          {!dark && <Circle cx={67.6} cy={83.6} r={2} fill="#FFFFFF" />}
+          <Circle cx={70} cy={86} r={7.5} fill={`url(#${hid})`} />
+          <Circle cx={67.6} cy={83.6} r={1.9} fill="#FFFFFF" fillOpacity={0.8} />
         </Svg>
       </Animated.View>
     </View>

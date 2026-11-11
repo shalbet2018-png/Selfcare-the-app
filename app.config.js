@@ -7,7 +7,7 @@
 module.exports = ({ config }) => {
   const business = process.env.APP_VARIANT === 'business';
   const baseUrl = process.env.EXPO_BASE_URL;
-  const night = '#221E27';
+  const night = '#120E17';
 
   const out = {
     ...config,

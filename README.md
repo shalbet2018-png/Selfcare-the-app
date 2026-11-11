@@ -8,7 +8,7 @@ The layout adapts to the screen: a bottom tab bar on phones (under 700 px), an i
 
 Ready-made downloads are on the **[Releases page](https://github.com/shalbet2018-png/Selfcare-the-app/releases/latest)**. GitHub builds them automatically every time `main` changes (or run **Build demo installers** by hand from the Actions tab).
 
-There are two apps, built from this same code: **Selfcare** for clients booking services (light bloom icon), and **Selfcare for Business** for salons, spas and freelancers (dark bloom icon).
+There are two apps, built from this same code: **Selfcare** for clients booking services (gold bloom icon), and **Selfcare for Business** for salons, spas and freelancers (lavender bloom icon).
 
 | Device | Selfcare | Selfcare for Business | How to install |
 | --- | --- | --- | --- |
@@ -82,8 +82,8 @@ src/components/          Nav, background and bubbles, buttons, cards, inputs
 src/lib/                 config (fees), data (demo), store (saved state), theme, layout
 desktop/                 Windows desktop wrapper (Electron) used for the .exe installer
 scripts/pages-extras.js  Adds the home-screen icon and manifest to the GitHub Pages build
-assets/brand/            Bloom icon artwork (SVG): light for Selfcare, dark for Business, plus the closed bud
-assets/images/           App icons, Android adaptive icons, splash buds, favicon (rendered from assets/brand)
+assets/brand/            Bloom icon artwork (SVG): bloom-light is Selfcare (gold), bloom-dark is Business (lavender), plus the closed buds
+assets/images/           App icons, Android adaptive icons, splash buds, favicon (rendered by scripts/render-brand.py)
 ```
 
 ## Settings to confirm

@@ -32,7 +32,7 @@ function createWindow() {
     minWidth: 360,
     minHeight: 600,
     title: BUSINESS ? 'Selfcare for Business' : 'Selfcare',
-    backgroundColor: BUSINESS ? '#221E27' : '#F4EEF0',
+    backgroundColor: '#120E17',
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true },
   });
