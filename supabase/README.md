@@ -16,7 +16,15 @@ These still live on the device for now: bookings, and the demo job requests on t
 
 1. **Create the project.** Sign up at [supabase.com](https://supabase.com) and create a new project. The free plan is fine. Pick the region closest to Nairobi, for example `eu-west` or `eu-central`.
 2. **Create the tables and rules.** In the dashboard, open **SQL Editor**, then **New query**. Paste all of [`schema.sql`](schema.sql) and click **Run**. It is safe to run again after edits.
-3. **Make the sign-in email contain the code.** Open **Authentication**, then **Emails**, then **Templates**, then **Magic Link**. Replace the body with something like:
+3. **Connect an email sender.** Supabase locks the email templates until you use your own sender (SMTP). We use [Resend](https://resend.com):
+   - In Resend, create an API key with **Sending access**.
+   - In Supabase, open **Authentication**, then **Emails**, then **SMTP Settings**, and turn on custom SMTP. Host `smtp.resend.com`, port `465`, username `resend`, password: the Resend key. Sender name `Selfcare`.
+   - Sender email: an address on a domain you have verified in Resend. Without a verified domain, use `onboarding@resend.dev`; Resend then only delivers to your own Resend account's email, which is fine for testing but not for customers.
+4. **Make the sign-in emails contain the code.** Open **Authentication**, then **Emails**, then **Templates**, and edit **both** of these (click **Source** to edit the body):
+   - **Confirm sign up**: sent the first time an email address signs in.
+   - **Magic link or OTP**: sent every time after that.
+
+   Set the subject to `Your Selfcare code` and the body to something like:
 
    ```html
    <h2>Your Selfcare code</h2>
@@ -25,10 +33,10 @@ These still live on the device for now: bookings, and the demo job requests on t
    ```
 
    Without `{{ .Token }}` the email only has a link, and the app needs the code.
-4. **Connect the app.** Open **Project Settings**, then **API Keys**. Copy `.env.example` to `.env.local` in the app folder and fill in:
+5. **Connect the app.** Open **Project Settings**, then **API Keys**. Copy `.env.example` to `.env.local` in the app folder and fill in:
    - `EXPO_PUBLIC_SUPABASE_URL`: the project URL
    - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: the **publishable** key, starting `sb_publishable_`. Never put the secret key in the app.
-5. **Restart the dev server** (`npx expo start`) so it picks up the new values.
+6. **Restart the dev server** (`npx expo start`) so it picks up the new values.
 
 ### Email limits
 

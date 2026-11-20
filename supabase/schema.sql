@@ -43,7 +43,13 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
-create or replace function public.is_admin()
+-- Helper checks used by the rules below live in their own "private" area, which the app's
+-- public web address does not expose, so nobody can call them directly from outside.
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated;
+
+create or replace function private.is_admin()
 returns boolean
 language sql
 stable
@@ -130,7 +136,7 @@ create table if not exists public.provider_photos (
 create index if not exists provider_photos_provider_idx on public.provider_photos (provider_id);
 
 -- True when the signed-in user owns this provider.
-create or replace function public.owns_provider(p_provider uuid)
+create or replace function private.owns_provider(p_provider uuid)
 returns boolean
 language sql
 stable
@@ -141,7 +147,7 @@ as $$
 $$;
 
 -- True when this provider is approved, so the public may see it.
-create or replace function public.provider_is_public(p_provider uuid)
+create or replace function private.provider_is_public(p_provider uuid)
 returns boolean
 language sql
 stable
@@ -200,7 +206,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if not public.is_admin() then
+  if not private.is_admin() then
     raise exception 'Only admins can review providers.';
   end if;
   if p_status not in ('in-review', 'approved', 'rejected') then
@@ -252,7 +258,7 @@ grant update (path, uploaded_at) on public.provider_documents to authenticated;
 revoke execute on function public.handle_new_user(), public.handle_new_provider(),
   public.submit_for_verification(), public.review_provider(uuid, text, text) from public, anon, authenticated;
 grant execute on function public.submit_for_verification(), public.review_provider(uuid, text, text) to authenticated;
-grant execute on function public.is_admin(), public.owns_provider(uuid), public.provider_is_public(uuid) to anon, authenticated;
+grant execute on function private.is_admin(), private.owns_provider(uuid), private.provider_is_public(uuid) to anon, authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.providers enable row level security;
@@ -264,7 +270,7 @@ alter table public.provider_photos enable row level security;
 -- profiles
 drop policy if exists "read own profile" on public.profiles;
 create policy "read own profile" on public.profiles for select to authenticated
-  using (id = (select auth.uid()) or public.is_admin());
+  using (id = (select auth.uid()) or private.is_admin());
 drop policy if exists "edit own profile" on public.profiles;
 create policy "edit own profile" on public.profiles for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
@@ -272,7 +278,7 @@ create policy "edit own profile" on public.profiles for update to authenticated
 -- providers
 drop policy if exists "see approved providers" on public.providers;
 create policy "see approved providers" on public.providers for select to anon, authenticated
-  using (verification = 'approved' or owner_id = (select auth.uid()) or public.is_admin());
+  using (verification = 'approved' or owner_id = (select auth.uid()) or private.is_admin());
 drop policy if exists "register own provider" on public.providers;
 create policy "register own provider" on public.providers for insert to authenticated
   with check (owner_id = (select auth.uid()));
@@ -286,40 +292,55 @@ create policy "delete own provider" on public.providers for delete to authentica
 -- provider_private
 drop policy if exists "read own private details" on public.provider_private;
 create policy "read own private details" on public.provider_private for select to authenticated
-  using (public.owns_provider(provider_id) or public.is_admin());
+  using (private.owns_provider(provider_id) or private.is_admin());
 drop policy if exists "edit own private details" on public.provider_private;
 create policy "edit own private details" on public.provider_private for update to authenticated
-  using (public.owns_provider(provider_id)) with check (public.owns_provider(provider_id));
+  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
 
 -- services
 drop policy if exists "see services" on public.services;
 create policy "see services" on public.services for select to anon, authenticated
-  using (public.provider_is_public(provider_id) or public.owns_provider(provider_id) or public.is_admin());
+  using (private.provider_is_public(provider_id) or private.owns_provider(provider_id) or private.is_admin());
+-- One rule per action (not "for all"), so reading is decided by "see services" alone.
 drop policy if exists "manage own services" on public.services;
-create policy "manage own services" on public.services for all to authenticated
-  using (public.owns_provider(provider_id)) with check (public.owns_provider(provider_id));
+drop policy if exists "add own services" on public.services;
+create policy "add own services" on public.services for insert to authenticated
+  with check (private.owns_provider(provider_id));
+drop policy if exists "edit own services" on public.services;
+create policy "edit own services" on public.services for update to authenticated
+  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
+drop policy if exists "remove own services" on public.services;
+create policy "remove own services" on public.services for delete to authenticated
+  using (private.owns_provider(provider_id));
 
 -- provider_photos
 drop policy if exists "see photos" on public.provider_photos;
 create policy "see photos" on public.provider_photos for select to anon, authenticated
-  using (public.provider_is_public(provider_id) or public.owns_provider(provider_id) or public.is_admin());
+  using (private.provider_is_public(provider_id) or private.owns_provider(provider_id) or private.is_admin());
 drop policy if exists "manage own photos" on public.provider_photos;
-create policy "manage own photos" on public.provider_photos for all to authenticated
-  using (public.owns_provider(provider_id)) with check (public.owns_provider(provider_id));
+drop policy if exists "add own photos" on public.provider_photos;
+create policy "add own photos" on public.provider_photos for insert to authenticated
+  with check (private.owns_provider(provider_id));
+drop policy if exists "edit own photos" on public.provider_photos;
+create policy "edit own photos" on public.provider_photos for update to authenticated
+  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
+drop policy if exists "remove own photos" on public.provider_photos;
+create policy "remove own photos" on public.provider_photos for delete to authenticated
+  using (private.owns_provider(provider_id));
 
 -- provider_documents: never visible to the public or to other providers.
 drop policy if exists "read own documents" on public.provider_documents;
 create policy "read own documents" on public.provider_documents for select to authenticated
-  using (public.owns_provider(provider_id) or public.is_admin());
+  using (private.owns_provider(provider_id) or private.is_admin());
 drop policy if exists "add own documents" on public.provider_documents;
 create policy "add own documents" on public.provider_documents for insert to authenticated
-  with check (public.owns_provider(provider_id));
+  with check (private.owns_provider(provider_id));
 drop policy if exists "replace own documents" on public.provider_documents;
 create policy "replace own documents" on public.provider_documents for update to authenticated
-  using (public.owns_provider(provider_id)) with check (public.owns_provider(provider_id));
+  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
 drop policy if exists "remove own documents" on public.provider_documents;
 create policy "remove own documents" on public.provider_documents for delete to authenticated
-  using (public.owns_provider(provider_id));
+  using (private.owns_provider(provider_id));
 
 -- ---------------------------------------------------------------------------------------
 -- File storage
@@ -335,7 +356,7 @@ on conflict (id) do update
 drop policy if exists "documents: owner or admin reads" on storage.objects;
 create policy "documents: owner or admin reads" on storage.objects for select to authenticated
   using (bucket_id = 'provider-documents'
-    and ((storage.foldername(name))[1] = (select auth.uid())::text or public.is_admin()));
+    and ((storage.foldername(name))[1] = (select auth.uid())::text or private.is_admin()));
 drop policy if exists "documents: owner uploads" on storage.objects;
 create policy "documents: owner uploads" on storage.objects for insert to authenticated
   with check (bucket_id = 'provider-documents' and (storage.foldername(name))[1] = (select auth.uid())::text);
@@ -361,6 +382,12 @@ create policy "photos: owner replaces" on storage.objects for update to authenti
 drop policy if exists "photos: owner deletes" on storage.objects;
 create policy "photos: owner deletes" on storage.objects for delete to authenticated
   using (bucket_id = 'provider-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- Earlier versions of this file put the helper checks in the public area. Remove those copies
+-- (every rule above now uses the private ones).
+drop function if exists public.is_admin();
+drop function if exists public.owns_provider(uuid);
+drop function if exists public.provider_is_public(uuid);
 
 -- ---------------------------------------------------------------------------------------
 -- Making yourself the first admin (run separately, once, after you have signed up in the app):
