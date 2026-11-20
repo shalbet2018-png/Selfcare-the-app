@@ -1,5 +1,5 @@
 // Loading screen: the bud from the app icon opens petal by petal, then pulses gently
-// until the app is ready. Gold for Selfcare, lavender for Selfcare for Business.
+// until the app is ready. Blush pink for Selfcare, lavender for Selfcare for Business, both on cream.
 import { useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -24,14 +24,14 @@ const BLOOM_MS = 1100;
 const THEMES = {
   // Colours match scripts/render-brand.py, which draws the icons and splash buds.
   client: {
-    bg: '#120E17',
-    outer: ['#F0D9AC', '#BF9257'],
-    centre: ['#FFF9EC', '#E9C88F'],
-    heart: ['#FFF3F5', '#F2B4C4', '#C46F8A'],
-    glow: '#E3C28A',
+    bg: '#FFF6F8',
+    outer: ['#F7B9CD', '#D9728F'],
+    centre: ['#FFEAF1', '#EFA3BC'],
+    heart: ['#FFFBF0', '#F3D6A0', '#CC9A55'],
+    glow: '#F4A6C0',
   },
   business: {
-    bg: '#120E17',
+    bg: '#FAF6FF',
     outer: ['#D9C6FF', '#A88BD9'],
     centre: ['#F1E8FF', '#C9B0F4'],
     heart: ['#FFF4DC', '#FFD28A', '#E9A95A'],

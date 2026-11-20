@@ -7,8 +7,8 @@ Needs Pillow (pip install pillow) and Chrome or Edge, which is used headless to 
 
 Two looks share one drawing (five petals hinged at 70,86 on a 140 grid; the same shape the
 in-app loader animates in src/components/bloom-loader.tsx):
-  client    Selfcare: champagne-gold bloom with a rose heart on plum-black
-  business  Selfcare for Business: lavender bloom with a gold heart under a crescent moon
+  client    Selfcare: blush-pink bloom with a champagne heart on cream
+  business  Selfcare for Business: lavender bloom with a gold heart under a crescent moon, on lilac cream
 """
 import os
 import shutil
@@ -23,40 +23,44 @@ BRAND = os.path.join(ROOT, 'assets', 'brand')
 IMAGES = os.path.join(ROOT, 'assets', 'images')
 DESKTOP = os.path.join(ROOT, 'desktop', 'build')
 
-BASE = '#120E17'  # same as C.night in src/lib/theme.ts
 PETAL = 'M70 86C53 66 57 41 70 26C83 41 87 66 70 86Z'
 # (angle, opacity) in drawing order: outer pair behind, centre petal in front.
 PETALS = [(-64, 0.92), (64, 0.92), (-32, 0.96), (32, 0.96), (0, 1)]
 
 LOOKS = {
     'client': {
-        'file': 'light',  # file names predate the dark theme: "light" is the Selfcare client app
-        'glows': [('18%', '12%', '75%', '#6A2D52'), ('98%', '42%', '65%', '#3F2E73'), ('52%', '110%', '58%', '#5A4220')],
-        'outer': ('#F0D9AC', '#BF9257'),
-        'inner': ('#F7E7C6', '#D3AC6C'),
-        'centre': ('#FFF9EC', '#E9C88F'),
-        'heart': ('#FFF3F5', '#F2B4C4', '#C46F8A'),
-        'halo': '#E3C28A',
+        'file': 'light',  # "light" is the Selfcare client app, "dark" is Business (names predate the themes)
+        'base': '#FFF6F8',  # same as C.night in src/lib/theme.ts
+        'glows': [('18%', '12%', '75%', '#FAD0DE'), ('98%', '42%', '65%', '#E8DCFB'), ('52%', '110%', '58%', '#FCE3CF')],
+        'outer': ('#F7B9CD', '#D9728F'),
+        'inner': ('#FAC9D8', '#E48CA8'),
+        'centre': ('#FFEAF1', '#EFA3BC'),
+        'heart': ('#FFFBF0', '#F3D6A0', '#CC9A55'),
+        'halo': '#F4A6C0',
+        'shadow': '#B0587A',
         'extras': (
-            '<circle cx="30" cy="34" r="1.1" fill="#F3DDB0" fill-opacity=".85"/>'
-            '<circle cx="109" cy="40" r="1.3" fill="#F3DDB0" fill-opacity=".9"/>'
-            '<circle cx="99" cy="22" r=".8" fill="#F3DDB0" fill-opacity=".7"/>'
-            '<circle cx="24" cy="70" r=".8" fill="#F3DDB0" fill-opacity=".6"/>'
+            '<circle cx="30" cy="34" r="1.2" fill="#E3A9BD" fill-opacity=".85"/>'
+            '<circle cx="109" cy="40" r="1.4" fill="#E9BE8E" fill-opacity=".9"/>'
+            '<circle cx="99" cy="22" r=".9" fill="#E3A9BD" fill-opacity=".7"/>'
+            '<circle cx="24" cy="70" r=".9" fill="#E9BE8E" fill-opacity=".6"/>'
         ),
     },
     'business': {
         'file': 'dark',
-        'glows': [('18%', '12%', '75%', '#3F2E73'), ('98%', '100%', '65%', '#1F4A45')],
+        'base': '#FAF6FF',  # same as BACKGROUNDS.business.base in src/lib/theme.ts
+        'glows': [('18%', '12%', '75%', '#E3D6FA'), ('98%', '100%', '65%', '#FCE6D2')],
         'outer': ('#D9C6FF', '#A88BD9'),
         'inner': ('#E2D2FF', '#B79BE6'),
         'centre': ('#F1E8FF', '#C9B0F4'),
         'heart': ('#FFF4DC', '#FFD28A', '#E9A95A'),
         'halo': '#CDB4FF',
+        'shadow': '#6E58A8',
         'extras': (
-            '<circle cx="106" cy="32" r="9" fill="#F6F2F7" fill-opacity=".92"/>'
-            '<circle cx="110.5" cy="29" r="8" fill="#1B1626"/>'
-            '<circle cx="28" cy="30" r="1.5" fill="#fff"/><circle cx="46" cy="18" r="1" fill="#fff"/>'
-            '<circle cx="86" cy="16" r="1.2" fill="#fff"/><circle cx="20" cy="56" r="1" fill="#fff" fill-opacity=".7"/>'
+            # crescent: a gold disc with a second disc masked out of it
+            '<mask id="moon"><rect width="140" height="140" fill="#fff"/><circle cx="110.5" cy="29" r="8" fill="#000"/></mask>'
+            '<circle cx="106" cy="32" r="9" fill="#E9B872" mask="url(#moon)"/>'
+            '<circle cx="28" cy="30" r="1.5" fill="#B79BE6"/><circle cx="46" cy="18" r="1" fill="#B79BE6"/>'
+            '<circle cx="86" cy="16" r="1.2" fill="#B79BE6"/><circle cx="20" cy="56" r="1" fill="#B79BE6" fill-opacity=".7"/>'
         ),
     },
 }
@@ -77,14 +81,14 @@ def defs(look):
     out.append(f'<radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="{look["halo"]}" stop-opacity=".42"/>'
                f'<stop offset="1" stop-color="{look["halo"]}" stop-opacity="0"/></radialGradient>')
     out.append('<filter id="sh" x="-30%" y="-30%" width="160%" height="160%">'
-               '<feDropShadow dx="0" dy="2.2" stdDeviation="2.6" flood-color="#000" flood-opacity=".45"/></filter>')
+               f'<feDropShadow dx="0" dy="2.2" stdDeviation="2.6" flood-color="{look["shadow"]}" flood-opacity=".3"/></filter>')
     out.append('</defs>')
     return ''.join(out)
 
 
 def background(look):
     rects = ''.join(f'<rect width="140" height="140" fill="url(#g{i})"/>' for i in range(len(look['glows'])))
-    return f'<rect width="140" height="140" fill="{BASE}"/>{rects}'
+    return f'<rect width="140" height="140" fill="{look["base"]}"/>{rects}'
 
 
 def flower(openness):

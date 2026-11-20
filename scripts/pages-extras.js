@@ -17,8 +17,8 @@ const manifest = {
   start_url: `${base}/`,
   scope: `${base}/`,
   display: 'standalone',
-  background_color: '#120E17',
-  theme_color: '#120E17',
+  background_color: '#FFF6F8',
+  theme_color: '#FFF6F8',
   icons: [{ src: `${base}/app-icon.png`, sizes: '1024x1024', type: 'image/png', purpose: 'any' }],
 };
 fs.writeFileSync(path.join(dir, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
@@ -30,7 +30,7 @@ const tags = [
   '<meta name="apple-mobile-web-app-capable" content="yes">',
   '<meta name="mobile-web-app-capable" content="yes">',
   '<meta name="apple-mobile-web-app-title" content="Selfcare">',
-  '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
+  '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
 ].join('\n    ');
 const html = fs.readFileSync(indexPath, 'utf8').replace('</head>', `    ${tags}\n  </head>`);
 fs.writeFileSync(indexPath, html);

@@ -1,13 +1,13 @@
 // Builds on app.json. Two settings come from the environment at build time:
 //
-//   APP_VARIANT=business  builds "Selfcare for Business" (dark bloom icon, own app ID,
+//   APP_VARIANT=business  builds "Selfcare for Business" (lavender bloom icon, own app ID,
 //                         opens on the business dashboard) instead of the Selfcare client app.
 //   EXPO_BASE_URL=/repo   serves the web build from a sub-path, e.g. https://<user>.github.io/<repo>/
 //                         (used for the GitHub Pages build).
 module.exports = ({ config }) => {
   const business = process.env.APP_VARIANT === 'business';
   const baseUrl = process.env.EXPO_BASE_URL;
-  const night = '#120E17';
+  const night = '#FAF6FF'; // Business base: lilac cream, as in scripts/render-brand.py
 
   const out = {
     ...config,
