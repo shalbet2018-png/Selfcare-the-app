@@ -2,38 +2,48 @@ import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import { Icon } from '@/components/icon';
-import { NotFoundView } from '@/components/not-found';
+import { LoadingView, NotFoundView } from '@/components/not-found';
 import { Screen } from '@/components/screen';
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import { StatusTag } from '@/components/status';
 import { Back, Btn, Glass, Lines, T } from '@/components/ui';
-import { STATUS_LABEL, stepsFor, whenText } from '@/lib/bookings';
+import { isActive, STATUS_LABEL, stepsFor, useMyBookings, whenText } from '@/lib/bookings';
 import { ARRIVED_CANCEL_FEE, money, PAYMENT_METHODS, SERVICE_FEE_LABEL } from '@/lib/config';
 import { useConfirm, useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
-import { useStore } from '@/lib/store';
+import { friendly } from '@/lib/supabase';
 import { C, veil } from '@/lib/theme';
 
 export default function BookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { state, updateBooking } = useStore();
+  const bookings = useMyBookings();
   const toast = useToast();
   const confirmAsync = useConfirm();
   const { wide } = useLayout();
-  const b = state.bookings.find((x) => x.id === id);
+  if (bookings.needsSignIn) {
+    return <SignInPrompt next={`/booking/${id}`} title="Your booking" theme="spa" body="Sign in with your email to see this booking." />;
+  }
+  if (bookings.loading) return <LoadingView />;
+  const b = bookings.list.find((x) => x.id === id);
   if (!b) return <NotFoundView />;
 
   const steps = stepsFor(b);
   const at = steps.indexOf(b.status);
-  const active = b.status !== 'done' && b.status !== 'cancelled';
+  const active = isActive(b.status);
   const lateCancel = b.status === 'arrived';
   const cancelled = b.status === 'cancelled';
+  const declined = cancelled && b.cancelledBy === 'provider';
 
   const cancel = async () => {
     const fee = lateCancel ? ARRIVED_CANCEL_FEE : 0;
     const ok = await confirmAsync('Cancel booking?', fee ? `Your provider has arrived, so cancelling costs ${money(fee)}.` : 'This is free until your provider arrives.', 'Cancel booking');
     if (!ok) return;
-    updateBooking(b.id, { status: 'cancelled', cancelFee: fee });
-    toast('Booking cancelled');
+    try {
+      await bookings.cancel(b, fee);
+      toast('Booking cancelled');
+    } catch (e) {
+      toast(friendly(e));
+    }
   };
 
   return (
@@ -52,7 +62,12 @@ export default function BookingDetail() {
               <T v="small" muted style={{ textAlign: 'center' }}>Live map: your provider’s route to {b.address || 'you'}</T>
             </Glass>
           )}
-          {cancelled ? <StatusTag status="cancelled" /> : (
+          {cancelled ? (
+            <View style={{ gap: 8 }}>
+              <StatusTag status="cancelled" />
+              {declined ? <T muted>{b.providerName} could not take this booking. You have not been charged.</T> : null}
+            </View>
+          ) : (
             <View accessibilityLabel={`Progress: ${STATUS_LABEL[b.status]}`}>
               {steps.map((s, i) => {
                 const done = i < at;
@@ -72,12 +87,15 @@ export default function BookingDetail() {
               })}
             </View>
           )}
-          {active && (
+          {active && bookings.live && b.status === 'requested' ? (
+            <T v="small" muted>{b.providerName} has been sent your request. This page updates as soon as they reply.</T>
+          ) : null}
+          {active && bookings.demoAdvance ? (
             <View style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: veil(0.28), borderRadius: 16, padding: 14, gap: 10 }}>
               <T v="small" muted>Demo control: in the live app, the provider’s actions move this along.</T>
-              <Btn small kind="ghost" label="Next status" onPress={() => updateBooking(b.id, { status: steps[Math.min(at + 1, steps.length - 1)] })} />
+              <Btn small kind="ghost" label="Next status" onPress={() => bookings.demoAdvance?.(b)} />
             </View>
-          )}
+          ) : null}
         </View>
 
         <Glass style={{ width: wide ? 360 : undefined, alignSelf: wide ? 'flex-start' : 'stretch', padding: 22, gap: 12 }}>
@@ -86,9 +104,11 @@ export default function BookingDetail() {
             ...(b.travel ? [{ label: 'Travel fee', value: money(b.travel) }] : []),
             { label: SERVICE_FEE_LABEL, value: money(b.fee) },
             ...(b.cancelFee ? [{ label: 'Inconvenience fee', value: money(b.cancelFee) }] : []),
-            { label: cancelled ? 'Charged' : 'Total', value: money(cancelled ? b.cancelFee ?? 0 : b.total), total: true },
+            { label: cancelled ? (bookings.live ? 'Cancellation fee' : 'Charged') : 'Total', value: money(cancelled ? b.cancelFee ?? 0 : b.total), total: true },
           ]} />
-          <T v="small" muted>Paying with {PAYMENT_METHODS.find((m) => m.id === b.pay)?.label}</T>
+          <T v="small" muted>
+            Paying with {PAYMENT_METHODS.find((m) => m.id === b.pay)?.label}{bookings.live ? '. No payment is taken in the app yet.' : ''}
+          </T>
           {active && (
             <>
               <Btn block kind="outline" label="Cancel booking" onPress={cancel} />

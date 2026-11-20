@@ -77,6 +77,7 @@ export function useBusiness() {
     const biz = store.state.business;
     return {
       live, loading: false, needsSignIn: false, biz, reviewNote: null as string | null, docsOnFile: [] as DocKind[],
+      providerId: null as string | null,
       saveDetails: async (d: Details) => {
         store.setBusiness({ ...d, registered: true, verification: biz.registered ? biz.verification : 'submitted' });
       },
@@ -109,6 +110,7 @@ export function useBusiness() {
 
   return {
     live, loading, needsSignIn: authReady && !userId, biz, reviewNote: priv?.review_note ?? null,
+    providerId: row?.id ?? null,
     /** Document kinds already uploaded, so a resubmission only needs the ones being replaced or missing. */
     docsOnFile: (row?.provider_documents ?? []).map((d) => d.kind),
 

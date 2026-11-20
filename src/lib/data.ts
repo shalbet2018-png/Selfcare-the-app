@@ -9,6 +9,8 @@ export type Provider = {
   // km and rating are unknown for live listings until location and reviews exist.
   area: string; km?: number; rating?: number; reviews: number; modes: Mode[];
   hours: string; staff: string[]; services: Service[];
+  /** Live listings only: whether they take "as soon as possible" home requests right now. */
+  online?: boolean;
 };
 export type Category = { id: string; label: string; blurb: string };
 

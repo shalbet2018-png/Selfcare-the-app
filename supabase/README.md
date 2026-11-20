@@ -10,12 +10,12 @@ Until these steps are done, the app runs on built-in demo data, the same as befo
 - **Online status and payout schedule** are saved too.
 - **Clients only see approved providers** in Home, Search and provider pages. A provider needs at least one service to show up.
 
-These still live on the device for now: bookings, and the demo job requests on the business dashboard. They are the next slice.
+- **Bookings** go to the business as requests. The business accepts or declines on its dashboard, then marks itself on the way, arrived and done; the client sees each step live and can cancel. Prices and fees are worked out by the database, never sent by the app. No money moves in the app yet: payments are the next slice.
 
 ## One-time setup (about 10 minutes)
 
 1. **Create the project.** Sign up at [supabase.com](https://supabase.com) and create a new project. The free plan is fine. Pick the region closest to Nairobi, for example `eu-west` or `eu-central`.
-2. **Create the tables and rules.** In the dashboard, open **SQL Editor**, then **New query**. Paste all of [`schema.sql`](schema.sql) and click **Run**. It is safe to run again after edits.
+2. **Create the tables and rules.** In the dashboard, open **SQL Editor**, then **New query**. Paste all of [`schema.sql`](schema.sql) and click **Run**. Then do the same with [`bookings.sql`](bookings.sql). Both are safe to run again after edits.
 3. **Connect an email sender.** Supabase locks the email templates until you use your own sender (SMTP). We use [Resend](https://resend.com):
    - In Resend, create an API key with **Sending access**.
    - In Supabase, open **Authentication**, then **Emails**, then **SMTP Settings**, and turn on custom SMTP. Host `smtp.resend.com`, port `465`, username `resend`, password: the Resend key. Sender name `Selfcare`.

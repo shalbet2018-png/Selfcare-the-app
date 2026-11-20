@@ -1,6 +1,6 @@
 // App state saved on the device. When the backend is connected, accounts, the provider's
-// business and listings come from it instead (see business.ts and providers.tsx); bookings
-// and demo jobs still live here for now.
+// business, listings and bookings come from it instead (see business.ts, providers.tsx and
+// bookings.ts); the saved address and the demo business jobs still live here.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -13,6 +13,8 @@ export type Booking = {
   providerId: string; providerName: string; serviceName: string;
   mode: Mode; when: 'now' | 'later'; day: string; time: string; staff: string; address: string;
   pay: PayMethod; price: number; travel: number; fee: number; total: number; cancelFee?: number;
+  // Only on bookings from the backend.
+  cancelledBy?: 'client' | 'provider'; clientName?: string; clientPhone?: string; mins?: number;
 };
 export type BizService = { id?: string; name: string; price: number; mins: number; where: 'shop' | 'home' | 'both' };
 export type Job = { id: string; service: string; client: string; km: number; price: number; mins: number; travel: number; status: 'accepted' | 'done' };

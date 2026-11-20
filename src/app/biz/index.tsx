@@ -6,11 +6,12 @@ import { CardGrid } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, DarkCtx, Glass, Lines, Segmented, T } from '@/components/ui';
 import { CITY, money, PAYOUT_OPTIONS, travelFee } from '@/lib/config';
-import { useToast } from '@/lib/feedback';
+import { useConfirm, useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { LoadingView } from '@/components/not-found';
+import { isActive, useProviderBookings, whenText } from '@/lib/bookings';
 import { useBusiness, VERIFY_LABEL } from '@/lib/business';
-import { useStore } from '@/lib/store';
+import { useStore, type Booking, type BookingStatus } from '@/lib/store';
 import { friendly } from '@/lib/supabase';
 import { C, F, veil } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
@@ -23,11 +24,13 @@ const DEMO_REQUESTS = [
 ];
 
 export default function Dashboard() {
-  // Listing, verification, online and payouts come from the backend when connected;
-  // the demo requests and jobs below still live on this device until bookings move over.
+  // Connected: listing, verification, online status, payouts and bookings all come from the backend.
+  // Demo: the sample requests and jobs below live on this device.
   const b = useBusiness();
+  const bookings = useProviderBookings(b.providerId);
   const { setBusiness } = useStore();
   const toast = useToast();
+  const confirmAsync = useConfirm();
   const { wide } = useLayout();
   const biz = b.biz;
   const attempt = (work: Promise<unknown>, done?: string) => work.then(() => done && toast(done), (e) => toast(friendly(e)));
@@ -63,8 +66,76 @@ export default function Dashboard() {
 
   const approved = biz.verification === 'approved';
   const req = DEMO_REQUESTS[biz.requestIndex % DEMO_REQUESTS.length];
-  const earned = biz.jobs.filter((j) => j.status === 'done').reduce((s, j) => s + j.price + j.travel, 0);
+  const earned = b.live
+    ? bookings.list.filter((x) => x.status === 'done').reduce((s, x) => s + x.price + x.travel, 0)
+    : biz.jobs.filter((j) => j.status === 'done').reduce((s, j) => s + j.price + j.travel, 0);
   const upcoming = biz.jobs.filter((j) => j.status === 'accepted');
+  // Oldest request first, so nobody waits longest.
+  const requests = bookings.list.filter((x) => x.status === 'requested').reverse();
+  const jobs = bookings.list.filter((x) => isActive(x.status) && x.status !== 'requested').reverse();
+
+  const move = (x: Booking, status: BookingStatus, done: string) => attempt(bookings.setStatus(x.id, status), done);
+  const decline = async (x: Booking) => {
+    if (await confirmAsync('Decline this request?', `${x.clientName || 'The client'} is told you cannot take it. They are not charged.`, 'Decline')) {
+      move(x, 'cancelled', 'Request declined');
+    }
+  };
+  const cancelJob = async (x: Booking) => {
+    if (await confirmAsync('Cancel this booking?', `${x.clientName || 'The client'} is told you cancelled. They are not charged.`, 'Cancel booking')) {
+      move(x, 'cancelled', 'Booking cancelled');
+    }
+  };
+
+  const liveRequestCard = (
+    <DarkCtx.Provider value={false}>
+      <Glass light style={{ padding: 22, gap: 12, flex: wide ? 1.2 : undefined }}>
+        {requests.length ? (
+          <>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <T v="eyebrow" accent>{requests.length === 1 ? 'New booking request' : `${requests.length} booking requests`}</T>
+              <T v="small" muted>Respond soon</T>
+            </View>
+            {requests.map((x) => (
+              <View key={x.id} style={{ gap: 10, paddingTop: 4 }}>
+                <T v="h2">{x.serviceName}</T>
+                <T muted>
+                  {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? 'Home visit' : 'At the shop'} · {whenText(x)}
+                </T>
+                {x.mode === 'home' ? <T v="small" muted>Address: {x.address}</T> : null}
+                {x.staff ? <T v="small" muted>Asked for: {x.staff}</T> : null}
+                <View style={{ backgroundColor: veil(0.06), borderRadius: 16, padding: 14 }}>
+                  <Lines rows={[
+                    { label: 'Your price', value: money(x.price) },
+                    ...(x.travel ? [{ label: 'Travel fee', value: money(x.travel) }] : []),
+                    { label: 'You receive', value: money(x.price + x.travel), total: true },
+                  ]} />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Btn kind="outline" label="Decline" style={{ flex: 1, alignSelf: 'auto' }} onPress={() => decline(x)} />
+                  <Btn label="Accept" style={{ flex: 2, alignSelf: 'auto' }} onPress={() => move(x, 'confirmed', 'Accepted. The client has been told.')} />
+                </View>
+              </View>
+            ))}
+          </>
+        ) : (
+          <>
+            <T v="h3">{approved ? 'No new requests' : 'Requests appear here'}</T>
+            <T muted>
+              {!approved ? 'After approval, clients can book you and their requests show here.'
+                : biz.online ? 'New booking requests show here as soon as they arrive.'
+                : 'Shop bookings still come in. Go online to also take “as soon as possible” home requests.'}
+            </T>
+          </>
+        )}
+      </Glass>
+    </DarkCtx.Provider>
+  );
+
+  const nextStep = (x: Booking): [BookingStatus, string, string] | null =>
+    x.status === 'confirmed' ? (x.mode === 'home' ? ['on-the-way', 'On my way', 'The client knows you are on the way.'] : ['done', 'Mark done', 'Marked done.'])
+      : x.status === 'on-the-way' ? ['arrived', 'I have arrived', 'The client knows you have arrived.']
+      : x.status === 'arrived' ? ['done', 'Mark done', 'Marked done.']
+      : null;
 
   const accept = () => {
     const job = { id: 'j' + Date.now().toString(36), ...req, travel: travelFee(req.km), status: 'accepted' as const };
@@ -150,14 +221,16 @@ export default function Dashboard() {
       )}
 
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 14, alignItems: wide ? 'flex-start' : 'stretch' }}>
-        {requestCard}
+        {b.live ? liveRequestCard : requestCard}
         <Glass style={{ padding: 22, gap: 10, flex: wide ? 1 : undefined }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Icon name="wallet" size={20} color={C.onNight} />
             <T v="h3">Earnings</T>
           </View>
           <T v="big">{money(earned)}</T>
-          <T v="small" muted>From completed services on this device. Clients pay the service fee, so you keep your full price.</T>
+          <T v="small" muted>
+            {b.live ? 'From completed bookings.' : 'From completed services on this device.'} Clients pay the service fee, so you keep your full price.
+          </T>
           <T v="label" muted style={{ marginTop: 6 }}>Get paid</T>
           <Segmented label="Payout schedule" options={PAYOUT_OPTIONS} value={biz.payout}
             onChange={(v) => attempt(b.setPayout(v), `Payouts: ${PAYOUT_OPTIONS.find((o) => o.id === v)!.label.toLowerCase()}`)} />
@@ -169,7 +242,26 @@ export default function Dashboard() {
           <Icon name="calendar" size={20} color={C.onNight} />
           <T v="h3">Upcoming jobs</T>
         </View>
-        {upcoming.length ? upcoming.map((j) => (
+        {b.live ? (
+          jobs.length ? jobs.map((x) => {
+            const step = nextStep(x);
+            return (
+              <View key={x.id} style={{ gap: 10, padding: 14, borderRadius: 16, backgroundColor: veil(0.06) }}>
+                <View style={{ flexShrink: 1, gap: 2 }}>
+                  <T v="strong">{x.serviceName} · {whenText(x)}</T>
+                  <T v="small" muted>
+                    {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? x.address : 'At the shop'} · {money(x.price + x.travel)}
+                  </T>
+                  {x.status !== 'confirmed' ? <T v="small" accent>{x.status === 'on-the-way' ? 'On the way' : 'Arrived'}</T> : null}
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                  {step ? <Btn small kind="light" label={step[1]} onPress={() => move(x, step[0], step[2])} /> : null}
+                  {x.status === 'confirmed' ? <Btn small kind="ghost" label="Cancel" onPress={() => cancelJob(x)} /> : null}
+                </View>
+              </View>
+            );
+          }) : <T v="small" muted>{bookings.error ? 'Could not load bookings. Check your connection.' : 'No upcoming jobs. Accepted bookings show here.'}</T>
+        ) : upcoming.length ? upcoming.map((j) => (
           <View key={j.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 16, backgroundColor: veil(0.06) }}>
             <View style={{ flexShrink: 1 }}>
               <T v="strong">{j.service}</T>
