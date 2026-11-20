@@ -51,7 +51,7 @@ jobs:
           make_latest: true
           fail_on_unmatched_files: true
           body: |
-            Demo builds of both apps, with sample providers. Bookings are saved on the device only.
+            Builds of both apps. When the repository has the Supabase secrets they use the live backend (sign-in, real listings, business review); without them they run on sample data. Bookings are still saved on the device only.
 
             | App | Android phones and tablets | Windows laptops and PCs |
             | --- | --- | --- |

@@ -30,6 +30,8 @@ jobs:
           - { variant: business, label: Selfcare for Business, file: Selfcare-Business-Demo.apk }
     env:
       APP_VARIANT: ${{ matrix.variant }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,6 +71,8 @@ jobs:
     env:
       APP_VARIANT: ${{ matrix.variant }}
       SELFCARE_VARIANT: ${{ matrix.variant }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -139,7 +143,7 @@ jobs:
           name: Selfcare demo (build ${{ steps.tag.outputs.number }})
           make_latest: true
           body: |
-            Demo builds of both apps, with sample providers. Bookings are saved on the device only.
+            Builds of both apps. When the repository has the Supabase secrets they use the live backend (sign-in, real listings, business review); without them they run on sample data. Bookings are still saved on the device only.
 
             | App | Android phones and tablets | Windows laptops and PCs |
             | --- | --- | --- |

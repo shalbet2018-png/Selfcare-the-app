@@ -59,4 +59,4 @@ Change `'admin'` to `'client'` to remove it again. Documents are also in **Stora
 
 ## Web and app-store builds
 
-The GitHub Actions builds do not have these keys, so they still produce demo builds. That is the right default until you are ready to go live. Add the two values as repository secrets later to make the builds connect.
+The GitHub Actions builds (Android, Windows and the web app on GitHub Pages) connect to Supabase when the repository has two secrets with the same names and values as `.env.local`: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Add them on GitHub under **Settings**, then **Secrets and variables**, then **Actions**, then **New repository secret**. Without them the builds run on demo data. Both values end up inside the app anyway (they are public by design); never add the Supabase secret key.
