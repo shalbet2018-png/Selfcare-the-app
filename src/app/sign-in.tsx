@@ -1,4 +1,4 @@
-// Sign in or sign up with an emailed 6-digit code. ?next=/path says where to go afterwards.
+// Sign in or sign up with an emailed one-time code. ?next=/path says where to go afterwards.
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -11,6 +11,9 @@ import { BACKEND_ON, friendly } from '@/lib/supabase';
 import { STATUS_TONES } from '@/lib/theme';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Supabase projects can send codes of 6 to 10 digits (Authentication -> Sign In / Providers -> Email OTP length).
+const CODE_MIN = 6;
+const CODE_MAX = 10;
 
 export default function SignIn() {
   const { next } = useLocalSearchParams<{ next?: string }>();
@@ -68,7 +71,7 @@ export default function SignIn() {
           </>
         ) : !sentTo ? (
           <>
-            <T muted>Enter your email and we will send you a 6-digit code. New here? This creates your account.</T>
+            <T muted>Enter your email and we will send you a sign-in code. New here? This creates your account.</T>
             <Field label="Email" value={email} onChangeText={setEmail} autoComplete="email" keyboardType="email-address"
               autoCapitalize="none" autoCorrect={false} inputMode="email" returnKeyType="send"
               onSubmitEditing={() => EMAIL.test(email.trim()) && !busy && send()} />
@@ -76,11 +79,11 @@ export default function SignIn() {
           </>
         ) : (
           <>
-            <T muted>We sent a 6-digit code to {sentTo}. It can take a minute; check spam too.</T>
-            <Field label="Code" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+            <T muted>We sent a code to {sentTo}. It can take a minute; check spam too.</T>
+            <Field label="Code" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, CODE_MAX))}
               keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" inputMode="numeric"
-              returnKeyType="done" onSubmitEditing={() => code.length === 6 && !busy && verify()} />
-            <Btn kind="light" label={busy ? 'Checking…' : 'Sign in'} disabled={busy || code.length !== 6} onPress={verify} />
+              returnKeyType="done" onSubmitEditing={() => code.length >= CODE_MIN && !busy && verify()} />
+            <Btn kind="light" label={busy ? 'Checking…' : 'Sign in'} disabled={busy || code.length < CODE_MIN} onPress={verify} />
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
               <Btn small kind="ghost" label="Send a new code" disabled={busy} onPress={send} />
               <Btn small kind="ghost" label="Use another email" disabled={busy} onPress={() => { setSentTo(''); setError(''); }} />

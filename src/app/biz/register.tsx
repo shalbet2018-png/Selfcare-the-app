@@ -7,7 +7,7 @@ import { LoadingView } from '@/components/not-found';
 import { Screen } from '@/components/screen';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Back, Btn, Field, Glass, Pill, PillRow, Segmented, T } from '@/components/ui';
-import { DOCS_FOR, useBusiness, type DocKind } from '@/lib/business';
+import { DOC_TYPES, DOCS_FOR, docTooBig, useBusiness, type DocKind } from '@/lib/business';
 import { CITY } from '@/lib/config';
 import { CATEGORIES } from '@/lib/data';
 import { useToast } from '@/lib/feedback';
@@ -19,7 +19,7 @@ type Picked = Partial<Record<DocKind, DocumentPicker.DocumentPickerAsset>>;
 
 function DocPicker({ label, file, onPick }: { label: string; file?: DocumentPicker.DocumentPickerAsset; onPick: (f: DocumentPicker.DocumentPickerAsset) => void }) {
   const pick = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
+    const res = await DocumentPicker.getDocumentAsync({ type: DOC_TYPES, copyToCacheDirectory: true });
     if (!res.canceled && res.assets[0]) onPick(res.assets[0]);
   };
   return (
@@ -60,9 +60,11 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
   const applying = first || biz.verification === 'rejected' || biz.verification === 'not-started';
   const docs = DOCS_FOR[kind];
   const docsMissing = b.live && applying && docs.some(([k]) => !files[k]);
+  const bigDoc = docs.map(([k]) => files[k]).find(docTooBig);
   const missing = !name.trim() ? 'Add your business or display name.'
     : !area.trim() ? 'Add your area.'
-    : docsMissing ? 'Add both documents so we can verify you.' : '';
+    : docsMissing ? 'Add both documents so we can verify you.'
+    : bigDoc ? `${bigDoc.name} is over 10 MB. Choose a smaller file.` : '';
 
   const submit = async () => {
     setBusy(true); setError('');
@@ -111,6 +113,7 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
           <T v="h3">Verification documents</T>
           <T v="small" muted>
             {kind === 'business' ? 'Business registration and your operating permit.' : 'National ID or passport, and a selfie.'}
+            {' Photos (JPG, PNG, WebP) or PDF, up to 10 MB each.'}
             {b.live ? ' Only you and the Selfcare team can see them.' : ' In this preview, files stay on your device.'}
             {!applying ? ' Already submitted; choose a file only to replace it.' : ''}
           </T>

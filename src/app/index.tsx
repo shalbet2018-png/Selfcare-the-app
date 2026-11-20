@@ -40,7 +40,7 @@ function ClientHome() {
         <T v="h1">Time for you.</T>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.blush, boxShadow: `0 0 10px ${C.blush}` }} />
-          <T v="small" style={{ color: C.blush, letterSpacing: 0.4 }}>{nearby.length} beauty pros ready for you today</T>
+          <T v="small" style={{ color: C.blush, letterSpacing: 0.4 }}>{nearby.length} beauty {nearby.length === 1 ? 'pro' : 'pros'} ready for you today</T>
         </View>
         <Glass style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, padding: 6, borderRadius: 18, maxWidth: 640 }}>
           <Icon name="search" size={18} color={C.muted} />

@@ -15,6 +15,11 @@ export const DOCS_FOR: Record<Business['kind'], [DocKind, string][]> = {
   freelancer: [['id-or-passport', 'National ID or passport'], ['selfie', 'Selfie']],
 };
 
+/** What the private provider-documents bucket accepts (see supabase/schema.sql). */
+export const DOC_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+export const DOC_MAX_BYTES = 10 * 1024 * 1024;
+export const docTooBig = (file?: DocumentPickerAsset) => !!file?.size && file.size > DOC_MAX_BYTES;
+
 export const VERIFY_LABEL: Record<Verification, string> = {
   'not-started': 'Not started', submitted: 'Submitted', 'in-review': 'In review', approved: 'Approved', rejected: 'Needs changes',
 };
@@ -116,6 +121,8 @@ export function useBusiness() {
       // Read fresh: right after a first registration the row may not be in state yet.
       const { data: me } = check(await db.from('providers').select('id').eq('owner_id', userId!).maybeSingle());
       if (!me) throw new Error('Register your business first.');
+      if (docTooBig(file)) throw new Error(`${file.name} is over 10 MB. Choose a smaller file.`);
+      if (file.mimeType && !DOC_TYPES.includes(file.mimeType)) throw new Error(`${file.name} is not a JPG, PNG, WebP or PDF.`);
       const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
       const path = `${userId}/${kind}-${Date.now()}.${ext}`;
       const body = await (await fetch(file.uri)).arrayBuffer();
