@@ -3,7 +3,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from './icon';
-import { C, F, R } from '@/lib/theme';
+import { C, F, IS_LIGHT, R, veil } from '@/lib/theme';
 
 /** True inside business screens. The whole app is dark now; kept for call sites that still read it. */
 export const DarkCtx = createContext(false);
@@ -26,7 +26,7 @@ export function T({ v = 'body', muted, style, children, numberOfLines, accent }:
   );
 }
 const ts = StyleSheet.create({
-  h1: { fontFamily: F.display300, fontSize: 38, lineHeight: 42, letterSpacing: -0.5, textShadowColor: 'rgba(182,156,255,0.55)', textShadowRadius: 18 },
+  h1: { fontFamily: F.display300, fontSize: 38, lineHeight: 42, letterSpacing: -0.5, textShadowColor: C.h1Glow, textShadowRadius: 16 },
   h2: { fontFamily: F.display400, fontSize: 24, lineHeight: 30 },
   h3: { fontFamily: F.display500, fontSize: 19, lineHeight: 24 },
   big: { fontFamily: F.display300, fontSize: 40, lineHeight: 46 },
@@ -43,11 +43,11 @@ export function Glass({ style, children, light }: { style?: StyleProp<ViewStyle>
   return (
     <View style={[{
       backgroundColor: light ? C.pearl : C.glass,
-      borderColor: light ? 'rgba(227,194,138,0.4)' : C.glassBorder,
-      borderTopColor: light ? 'rgba(227,194,138,0.6)' : C.neonEdge,
-      borderLeftColor: light ? 'rgba(227,194,138,0.5)' : 'rgba(182,156,255,0.22)',
+      borderColor: light ? C.goldEdge : C.glassBorder,
+      borderTopColor: light ? C.goldEdge : C.softEdge,
+      borderLeftColor: light ? C.goldEdge : C.glassBorder,
       borderWidth: 1, borderRadius: R.lg,
-      boxShadow: '0 14px 34px rgba(0,0,0,0.32), 0 0 28px rgba(127,231,255,0.07), inset 0 1px 0 rgba(255,255,255,0.06)',
+      boxShadow: `0 14px 34px ${C.shadow}, 0 0 30px rgba(247,198,212,0.08), inset 0 1px 0 rgba(255,255,255,${IS_LIGHT ? 0.9 : 0.06})`,
     }, style]}>
       {children}
     </View>
@@ -62,7 +62,7 @@ export function Btn({ label, onPress, href, kind = 'dark', small, block, disable
 }) {
   // 'dark' and 'light' are both the primary (gold) button; the names predate the dark theme.
   const primary = kind === 'dark' || kind === 'light';
-  const bg = primary ? C.gold : kind === 'ghost' ? 'rgba(255,255,255,0.09)' : 'transparent';
+  const bg = primary ? C.gold : kind === 'ghost' ? veil(0.09) : 'transparent';
   const fg = primary ? C.onGold : C.ink;
   const content = (
     <Pressable
@@ -75,8 +75,8 @@ export function Btn({ label, onPress, href, kind = 'dark', small, block, disable
       style={StyleSheet.flatten([
         bs.btn, small && bs.small, block && bs.block,
         { backgroundColor: bg },
-        kind === 'outline' && { borderWidth: 1, borderColor: 'rgba(245,239,244,0.4)' },
-        primary && !disabled && { boxShadow: '0 8px 22px rgba(227,194,138,0.28), 0 0 18px rgba(227,194,138,0.35)' },
+        kind === 'outline' && { borderWidth: 1, borderColor: veil(0.4) },
+        primary && !disabled && { boxShadow: `0 8px 22px ${C.shadow}, 0 0 18px ${C.goldEdge}` },
         disabled && { opacity: 0.45 },
         style,
       ])}>
@@ -130,17 +130,17 @@ export function PillRow({ children, label }: { children: ReactNode; label: strin
 }
 const ps = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { minHeight: 44, paddingHorizontal: 16, borderRadius: R.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center' },
+  pill: { minHeight: 44, paddingHorizontal: 16, borderRadius: R.pill, borderWidth: 1, borderColor: veil(0.16), backgroundColor: C.glass, justifyContent: 'center' },
   label: { fontFamily: F.body, fontSize: 14 },
 });
 
 export function Chip({ label }: { label: string }) {
-  return <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.1)' }}><Text style={{ fontFamily: F.body, fontSize: 12, color: C.ink }}>{label}</Text></View>;
+  return <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill, backgroundColor: veil(0.1) }}><Text style={{ fontFamily: F.body, fontSize: 12, color: C.ink }}>{label}</Text></View>;
 }
 
 export function Badge({ label = 'Verified' }: { label?: string }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: R.pill, backgroundColor: C.goldSoft, borderWidth: 1, borderColor: 'rgba(227,194,138,0.5)' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: R.pill, backgroundColor: C.goldSoft, borderWidth: 1, borderColor: C.goldEdge }}>
       <Icon name="check" size={12} color={C.gold} />
       <Text style={{ fontFamily: F.body600, fontSize: 12, color: C.gold }}>{label}</Text>
     </View>
@@ -154,11 +154,11 @@ export function Field({ label, style, ...input }: TextInputProps & { label: stri
       <Text style={{ fontFamily: F.body, fontSize: 13, color: C.muted }}>{label}</Text>
       <TextInput
         accessibilityLabel={label}
-        placeholderTextColor="#8E8499"
+        placeholderTextColor={C.placeholder}
         style={{
           minHeight: 48, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, fontFamily: F.body, fontSize: 16,
-          borderColor: 'rgba(255,255,255,0.18)',
-          backgroundColor: 'rgba(255,255,255,0.07)',
+          borderColor: veil(0.18),
+          backgroundColor: C.glass,
           color: C.ink,
         }}
         {...input}

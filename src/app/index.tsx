@@ -37,8 +37,8 @@ function ClientHome() {
         <T v="eyebrow" muted>{greeting()} · {CITY}</T>
         <T v="h1">Time for you.</T>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.cyan, boxShadow: `0 0 10px ${C.cyan}` }} />
-          <T v="small" style={{ color: C.cyan, letterSpacing: 1.2 }}>{nearby.length} pros online near you</T>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.blush, boxShadow: `0 0 10px ${C.blush}` }} />
+          <T v="small" style={{ color: C.blush, letterSpacing: 0.4 }}>{nearby.length} beauty pros ready for you today</T>
         </View>
         <Glass style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, padding: 6, borderRadius: 18, maxWidth: 640 }}>
           <Icon name="search" size={18} color={C.muted} />
@@ -49,7 +49,7 @@ function ClientHome() {
             returnKeyType="search"
             accessibilityLabel="Search services"
             placeholder="Braids, gel nails, lash fill…"
-            placeholderTextColor="#8E8499"
+            placeholderTextColor={C.placeholder}
             style={{ flex: 1, minWidth: 0, minHeight: 44, fontFamily: F.body, fontSize: 16, color: C.ink }}
           />
           <Btn label="Search" onPress={search} style={{ borderRadius: 14, minHeight: 44 }} />

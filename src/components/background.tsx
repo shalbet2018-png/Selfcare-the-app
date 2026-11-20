@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useShar
 import Svg, { Circle, Defs, Ellipse, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { ParallaxLayers } from './parallax';
-import { BACKGROUNDS, type BgTheme } from '@/lib/theme';
+import { AMBIENT, BACKGROUNDS, IS_LIGHT, type BgTheme } from '@/lib/theme';
 
 /** One glass orb, drawn once; the Bubbles layer moves it around. */
 const Orb = memo(function Orb({ size }: { size: number }) {
@@ -21,12 +21,12 @@ const Orb = memo(function Orb({ size }: { size: number }) {
           <Stop offset="1" stopColor="#fff" stopOpacity={0.3} />
         </RadialGradient>
         <RadialGradient id={`${id}s`} cx="70%" cy="75%" r="50%">
-          <Stop offset="0" stopColor="#E3C28A" stopOpacity={0.22} />
-          <Stop offset="1" stopColor="#E3C28A" stopOpacity={0} />
+          <Stop offset="0" stopColor={AMBIENT.bubbleTint} stopOpacity={IS_LIGHT ? 0.4 : 0.22} />
+          <Stop offset="1" stopColor={AMBIENT.bubbleTint} stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Circle cx={50} cy={50} r={48} fill={`url(#${id}s)`} />
-      <Circle cx={50} cy={50} r={48} fill={`url(#${id})`} stroke="#fff" strokeOpacity={0.7} strokeWidth={1} />
+      <Circle cx={50} cy={50} r={48} fill={`url(#${id})`} stroke={AMBIENT.bubbleRim} strokeOpacity={AMBIENT.bubbleRimOpacity} strokeWidth={1} />
     </Svg>
   );
 });

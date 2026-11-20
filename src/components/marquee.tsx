@@ -1,9 +1,9 @@
-// A strip of holographic image tiles that glides sideways on its own, looping forever.
+// A strip of dreamy image tiles that glides sideways on its own, looping forever.
 import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-import { HoloArt } from './holo-art';
+import { CardArt } from './card-art';
 import { useLoop } from './parallax';
 import type { Category } from '@/lib/data';
 import { C, CATEGORY_GLOW, F } from '@/lib/theme';
@@ -17,17 +17,17 @@ function Tile({ c, n, hidden }: { c: Category; n: number; hidden?: boolean }) {
   const tile = (
     <View style={{
       width: TILE_W, height: TILE_H, borderRadius: 22, overflow: 'hidden',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderTopColor: C.neonEdge,
-      boxShadow: `0 12px 30px rgba(0,0,0,0.4), 0 0 22px ${glow}22`,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderTopColor: C.softEdge,
+      boxShadow: `0 12px 30px ${C.shadow}, 0 0 22px ${glow}22`,
     }}>
-      <HoloArt category={c.id} seed="marquee" />
+      <CardArt category={c.id} seed="marquee" />
       <View style={{ position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ fontFamily: F.body500, fontSize: 10, letterSpacing: 2, color: C.cyan }}>{String(n).padStart(2, '0')}</Text>
+        <Text style={{ fontFamily: F.body500, fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.92)' }}>{String(n).padStart(2, '0')}</Text>
         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: glow, boxShadow: `0 0 8px ${glow}` }} />
       </View>
       <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, gap: 2 }}>
-        <Text style={{ fontFamily: F.display400, fontSize: 22, color: C.ink, textShadowColor: glow, textShadowRadius: 12 }}>{c.label}</Text>
-        <Text numberOfLines={1} style={{ fontFamily: F.body, fontSize: 12, color: 'rgba(245,239,244,0.75)' }}>{c.blurb}</Text>
+        <Text style={{ fontFamily: F.display400, fontSize: 22, color: '#FFFFFF', textShadowColor: glow, textShadowRadius: 12 }}>{c.label}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: F.body, fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{c.blurb}</Text>
       </View>
     </View>
   );

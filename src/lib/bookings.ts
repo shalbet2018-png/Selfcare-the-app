@@ -1,4 +1,5 @@
 import type { Booking, BookingStatus } from './store';
+import { STATUS_TONES } from './theme';
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
   requested: 'Finding a provider',
@@ -9,13 +10,13 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-export const STATUS_COLORS: Record<BookingStatus, [string, string]> = {
-  requested: ['rgba(227,194,138,0.16)', '#EBD3A6'],
-  'on-the-way': ['rgba(227,194,138,0.16)', '#EBD3A6'],
-  arrived: ['rgba(227,194,138,0.16)', '#EBD3A6'],
-  confirmed: ['rgba(143,211,188,0.16)', '#A6E3CE'],
-  done: ['rgba(143,211,188,0.16)', '#A6E3CE'],
-  cancelled: ['rgba(240,130,150,0.16)', '#F5ABB8'],
+export const STATUS_COLORS: Record<BookingStatus, readonly [string, string]> = {
+  requested: STATUS_TONES.waiting,
+  'on-the-way': STATUS_TONES.waiting,
+  arrived: STATUS_TONES.waiting,
+  confirmed: STATUS_TONES.good,
+  done: STATUS_TONES.good,
+  cancelled: STATUS_TONES.bad,
 };
 
 export function whenText(b: Booking) {

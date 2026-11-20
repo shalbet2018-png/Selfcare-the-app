@@ -1,13 +1,14 @@
-// Futuristic backdrop layers that slide at different speeds as the page scrolls (parallax):
-// a star field far away, aurora ribbons in the middle, and a neon grid floor rushing forward.
+// Dreamy backdrop layers that slide at different speeds as the page scrolls (parallax):
+// soft glitter far away, silky ribbons in the middle, and rose petals drifting down in front.
 import { memo, useEffect, useId, useMemo } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming, type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 
-import { rng } from './holo-art';
+import { rng } from './card-art';
+import { AMBIENT } from '@/lib/theme';
 
 /** A 0→1 value that loops forever (stays at 0 when the device asks for reduced motion). */
 export function useLoop(duration: number) {
@@ -21,127 +22,142 @@ export function useLoop(duration: number) {
   return t;
 }
 
-/** One tile of stars, w × h pixels. Two are stacked so the field loops seamlessly. */
-const StarTile = memo(function StarTile({ w, h, seed }: { w: number; h: number; seed: number }) {
+const GLITTER = AMBIENT.glitter;
+
+/** A four-point sparkle centred on (x, y). */
+const sparkle = (x: number, y: number, s: number) =>
+  `M${x} ${y - s} Q${x + s * 0.18} ${y - s * 0.18} ${x + s} ${y} Q${x + s * 0.18} ${y + s * 0.18} ${x} ${y + s} Q${x - s * 0.18} ${y + s * 0.18} ${x - s} ${y} Q${x - s * 0.18} ${y - s * 0.18} ${x} ${y - s}Z`;
+
+/** One tile of glitter, w × h pixels. Two are stacked so the field loops seamlessly. */
+const GlitterTile = memo(function GlitterTile({ w, h, seed }: { w: number; h: number; seed: number }) {
   const r = rng(seed);
-  const stars = Array.from({ length: Math.round((w * h) / 9000) }, () => ({
-    x: r() * w, y: r() * h, s: 0.4 + r() * 1.3, o: 0.25 + r() * 0.6, c: r() > 0.85 ? '#7FE7FF' : r() > 0.8 ? '#E3C28A' : '#fff',
+  const dots = Array.from({ length: Math.round((w * h) / 8000) }, () => ({
+    x: r() * w, y: r() * h, s: 0.5 + r() * 1.2, o: 0.25 + r() * 0.55, c: GLITTER[Math.floor(r() * GLITTER.length)], star: r() > 0.86,
   }));
   return (
     <Svg width={w} height={h}>
-      {stars.map((s, i) => <Circle key={i} cx={s.x} cy={s.y} r={s.s} fill={s.c} opacity={s.o} />)}
+      {dots.map((d, i) => d.star
+        ? <Path key={i} d={sparkle(d.x, d.y, d.s * 4)} fill={d.c} opacity={d.o + 0.2} />
+        : <Circle key={i} cx={d.x} cy={d.y} r={d.s} fill={d.c} opacity={d.o} />)}
     </Svg>
   );
 });
 
-function Stars({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
-  const twinkle = useLoop(9000);
+function Glitter({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
+  const drift = useLoop(60000);
   const style = useAnimatedStyle(() => {
-    const off = ((scroll?.value ?? 0) * 0.12 + twinkle.value * h * 0.1) % h;
+    const off = ((scroll?.value ?? 0) * 0.12 + drift.value * h) % h;
     return { transform: [{ translateY: -off }] };
   });
   return (
     <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: w, height: h * 2 }, style]}>
-      <StarTile w={w} h={h} seed={11} />
-      <StarTile w={w} h={h} seed={11} />
+      <GlitterTile w={w} h={h} seed={11} />
+      <GlitterTile w={w} h={h} seed={11} />
     </Animated.View>
   );
 }
 
-/** Soft neon ribbons, like an aurora, drawn taller than the screen so they can slide up as you scroll. */
-const AuroraArt = memo(function AuroraArt({ w, h }: { w: number; h: number }) {
-  const id = `au${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+/** Soft silk ribbons in blush, champagne and lilac, drawn taller than the screen so they slide up as you scroll. */
+const SilkArt = memo(function SilkArt({ w, h }: { w: number; h: number }) {
+  const id = `sk${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const ribbon = (y: number, amp: number) =>
     `M ${-w * 0.2} ${y} C ${w * 0.25} ${y - amp}, ${w * 0.55} ${y + amp}, ${w * 1.2} ${y - amp * 0.4}`;
+  const fills: [string, string, string][] = AMBIENT.silk.map(([c1, c2], i) => ['abc'[i], c1, c2]);
+  const k = AMBIENT.silkOpacity;
   return (
     <Svg width={w * 1.4} height={h}>
       <Defs>
-        <LinearGradient id={`${id}a`} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#7FE7FF" stopOpacity={0} />
-          <Stop offset="0.35" stopColor="#7FE7FF" stopOpacity={0.55} />
-          <Stop offset="0.7" stopColor="#B69CFF" stopOpacity={0.45} />
-          <Stop offset="1" stopColor="#E8A3B4" stopOpacity={0} />
-        </LinearGradient>
-        <LinearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#E8A3B4" stopOpacity={0} />
-          <Stop offset="0.4" stopColor="#E8A3B4" stopOpacity={0.4} />
-          <Stop offset="0.8" stopColor="#E3C28A" stopOpacity={0.35} />
-          <Stop offset="1" stopColor="#E3C28A" stopOpacity={0} />
-        </LinearGradient>
+        {fills.map(([k, c1, c2]) => (
+          <LinearGradient key={k} id={`${id}${k}`} x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={c1} stopOpacity={0} />
+            <Stop offset="0.4" stopColor={c1} stopOpacity={0.6} />
+            <Stop offset="0.75" stopColor={c2} stopOpacity={0.5} />
+            <Stop offset="1" stopColor={c2} stopOpacity={0} />
+          </LinearGradient>
+        ))}
       </Defs>
-      {[0.14, 0.42, 0.7].map((f, i) => (
-        <Path key={`w${i}`} d={ribbon(h * f, h * 0.08)} fill="none" stroke={`url(#${id}${i % 2 ? 'b' : 'a'})`} strokeWidth={70} strokeOpacity={0.09} />
+      {[0.16, 0.44, 0.72].map((f, i) => (
+        <Path key={`w${i}`} d={ribbon(h * f, h * 0.07)} fill="none" stroke={`url(#${id}${fills[i][0]})`} strokeWidth={90} strokeOpacity={0.1 * k} strokeLinecap="round" />
       ))}
-      {[0.14, 0.42, 0.7].map((f, i) => (
-        <Path key={`l${i}`} d={ribbon(h * f, h * 0.08)} fill="none" stroke={`url(#${id}${i % 2 ? 'b' : 'a'})`} strokeWidth={1.4} />
+      {[0.16, 0.44, 0.72].map((f, i) => (
+        <Path key={`s${i}`} d={ribbon(h * f - 14, h * 0.07)} fill="none" stroke={`url(#${id}${fills[i][0]})`} strokeWidth={10} strokeOpacity={0.18 * k} strokeLinecap="round" />
       ))}
-      {[0.2, 0.5, 0.78].map((f, i) => (
-        <Path key={`t${i}`} d={ribbon(h * f + 18, h * 0.06)} fill="none" stroke={`url(#${id}a)`} strokeWidth={0.6} strokeOpacity={0.6} />
+      {[0.16, 0.44, 0.72].map((f, i) => (
+        <Path key={`l${i}`} d={ribbon(h * f + 10, h * 0.07)} fill="none" stroke={`url(#${id}${fills[i][0]})`} strokeWidth={0.8} strokeOpacity={Math.min(0.7 * k, 1)} />
       ))}
     </Svg>
   );
 });
 
-function Aurora({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
-  const sway = useLoop(24000);
+function Silk({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
+  const sway = useLoop(26000);
   const tall = h * 1.8;
   const style = useAnimatedStyle(() => {
-    const y = Math.min((scroll?.value ?? 0) * 0.35, tall - h);
-    const x = -w * 0.2 + Math.sin(sway.value * Math.PI * 2) * w * 0.08;
+    const y = Math.min((scroll?.value ?? 0) * 0.3, tall - h);
+    const x = -w * 0.2 + Math.sin(sway.value * Math.PI * 2) * w * 0.07;
     return { transform: [{ translateX: x }, { translateY: -y }] };
   });
   return (
     <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
-      <AuroraArt w={w} h={tall} />
+      <SilkArt w={w} h={tall} />
     </Animated.View>
   );
 }
 
-const GRID_LINES = 9;
+/** One rose petal, drawn once. */
+const Petal = memo(function Petal({ size, color }: { size: number; color: string }) {
+  const id = `pt${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      <Defs>
+        <RadialGradient id={id} cx="35%" cy="30%" r="80%">
+          <Stop offset="0" stopColor="#fff" stopOpacity={0.9} />
+          <Stop offset="0.35" stopColor={color} stopOpacity={0.95} />
+          <Stop offset="1" stopColor={color} stopOpacity={0.55} />
+        </RadialGradient>
+      </Defs>
+      <Path d="M20 3 C 31 9, 36 22, 20 37 C 4 22, 9 9, 20 3 Z" fill={`url(#${id})`} />
+      <Path d="M20 8 C 22 18, 21 27, 20 33" stroke="#fff" strokeOpacity={0.35} strokeWidth={0.8} fill="none" />
+    </Svg>
+  );
+});
 
-/** One horizontal line of the floor, sliding from the horizon towards the viewer. */
-function FloorLine({ i, t, top, floorH }: { i: number; t: SharedValue<number>; top: number; floorH: number }) {
+const PETAL_COLOURS = AMBIENT.petals;
+
+/** A petal falling from above the screen to below it, swaying and turning, then starting again. */
+function FallingPetal({ i, t, scroll, w, h }: { i: number; t: SharedValue<number>; scroll?: SharedValue<number>; w: number; h: number }) {
+  const seed = useMemo(() => {
+    const r = rng(101 + i * 17);
+    // Keep the whole sway on screen: start between 10% and 90% of the width.
+    return { x: w * (0.1 + r() * 0.8), phase: r(), speed: 0.6 + r() * 0.8, sway: 18 + r() * 34, size: 16 + r() * 14, spin: r() > 0.5 ? 1 : -1, colour: PETAL_COLOURS[i % PETAL_COLOURS.length], opacity: 0.45 + r() * 0.35 };
+  }, [i, w]);
   const style = useAnimatedStyle(() => {
-    const p = (t.value + i / GRID_LINES) % 1;
-    return { opacity: p * 0.8, transform: [{ translateY: top + Math.pow(p, 2.2) * floorH }] };
-  });
-  return <Animated.View style={[{ position: 'absolute', left: 0, right: 0, top: 0, height: 1, backgroundColor: '#7FE7FF' }, style]} />;
-}
-
-/** A neon perspective grid along the bottom of the screen, rushing forward. */
-function GridFloor({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
-  const t = useLoop(7000);
-  const id = `gf${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  const floorH = h * 0.34;
-  const top = h - floorH;
-  const vx = w / 2;
-  const rays = useMemo(() => Array.from({ length: 17 }, (_, i) => (i - 8) / 8), []);
-  const fade = useAnimatedStyle(() => {
-    // The floor sinks away as you scroll down, so content stays readable.
-    const s = Math.min((scroll?.value ?? 0) / (h * 0.8), 1);
-    return { opacity: 1 - s * 0.6, transform: [{ translateY: s * floorH * 0.5 }] };
+    const travel = h + seed.size * 2;
+    // Falls on its own, and scrolling pushes it along a bit faster than the page (it's the closest layer).
+    const p = ((t.value * seed.speed + seed.phase) * travel + (scroll?.value ?? 0) * 0.5) % travel;
+    const k = p / travel;
+    return {
+      transform: [
+        { translateX: seed.x + Math.sin(k * Math.PI * 4 + seed.phase * 6) * seed.sway },
+        { translateY: p - seed.size * 2 },
+        { rotate: `${seed.spin * (k * 540 + seed.phase * 360)}deg` },
+      ],
+    };
   });
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { opacity: 0.55 }, fade]}>
-      <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <LinearGradient id={`${id}r`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#B69CFF" stopOpacity={0} />
-            <Stop offset="1" stopColor="#7FE7FF" stopOpacity={0.7} />
-          </LinearGradient>
-          <RadialGradient id={`${id}h`} cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#B69CFF" stopOpacity={0.55} />
-            <Stop offset="1" stopColor="#B69CFF" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x={-w * 0.1} y={top - 60} width={w * 1.2} height={120} fill={`url(#${id}h)`} />
-        <Line x1={0} y1={top} x2={w} y2={top} stroke="#B69CFF" strokeOpacity={0.8} strokeWidth={1} />
-        {rays.map((k, i) => (
-          <Line key={i} x1={vx + k * w * 0.08} y1={top} x2={vx + k * w * 1.1} y2={h} stroke={`url(#${id}r)`} strokeWidth={1} />
-        ))}
-      </Svg>
-      {Array.from({ length: GRID_LINES }).map((_, i) => <FloorLine key={i} i={i} t={t} top={top} floorH={floorH} />)}
+    <Animated.View style={[{ position: 'absolute', left: 0, top: 0, opacity: seed.opacity }, style]}>
+      <Petal size={seed.size} color={seed.colour} />
     </Animated.View>
+  );
+}
+
+function Petals({ scroll, w, h }: { scroll?: SharedValue<number>; w: number; h: number }) {
+  const t = useLoop(22000);
+  const count = Math.min(14, Math.max(7, Math.round(w / 60)));
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {Array.from({ length: count }).map((_, i) => <FallingPetal key={i} i={i} t={t} scroll={scroll} w={w} h={h} />)}
+    </View>
   );
 }
 
@@ -152,9 +168,9 @@ export function ParallaxLayers({ scroll }: { scroll?: SharedValue<number> }) {
   const s = reduce ? undefined : scroll;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Stars scroll={s} w={w} h={h} />
-      <Aurora scroll={s} w={w} h={h} />
-      <GridFloor scroll={s} w={w} h={h} />
+      <Glitter scroll={s} w={w} h={h} />
+      <Silk scroll={s} w={w} h={h} />
+      <Petals scroll={s} w={w} h={h} />
     </View>
   );
 }

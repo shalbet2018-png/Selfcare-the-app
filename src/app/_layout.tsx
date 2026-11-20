@@ -13,7 +13,7 @@ import { Nav } from '@/components/nav';
 import { FeedbackProvider } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { StoreProvider, useStore } from '@/lib/store';
-import { C } from '@/lib/theme';
+import { C, IS_LIGHT } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
 
 SplashScreen.preventAutoHideAsync();
@@ -51,7 +51,7 @@ function Shell() {
     <View style={{ flex: 1, backgroundColor: C.night }}>
       {loaded && (
         <FeedbackProvider>
-          <StatusBar style="light" />
+          <StatusBar style={IS_LIGHT ? 'dark' : 'light'} />
           <View style={{ flex: 1, flexDirection: phone ? 'column' : 'row', backgroundColor: C.night }}>
             {!phone && <Nav />}
             <View style={{ flex: 1 }}>

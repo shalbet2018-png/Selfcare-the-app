@@ -2,21 +2,21 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { HoloArt } from './holo-art';
+import { CardArt } from './card-art';
 import { Icon } from './icon';
 import { Badge, Chip, Glass, T } from './ui';
 import { money } from '@/lib/config';
 import { fromPrice, type Provider } from '@/lib/data';
-import { C, F } from '@/lib/theme';
+import { C, F, IS_LIGHT } from '@/lib/theme';
 
-/** Stand-in for a provider's photo until real images exist: generated holographic art with a HUD tag. */
+/** Stand-in for a provider's photo until real images exist: generated soft artwork with a small tag. */
 export function PhotoPlaceholder({ category, height, label = 'Photo', radius = 0, seed }: { category: string; height: number; label?: string; radius?: number; seed?: string }) {
   return (
     <View style={{ height, borderRadius: radius, overflow: 'hidden' }}>
-      <HoloArt category={category} seed={seed} />
-      <View style={{ position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(10,8,16,0.55)', borderWidth: 1, borderColor: C.neonEdge }}>
-        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: C.cyan }} />
-        <Text style={{ fontFamily: F.body500, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: C.cyan }}>{label}</Text>
+      <CardArt category={category} seed={seed} />
+      <View style={{ position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: IS_LIGHT ? 'rgba(255,255,255,0.8)' : 'rgba(30,16,28,0.5)', borderWidth: 1, borderColor: C.softEdge }}>
+        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: C.blush }} />
+        <Text style={{ fontFamily: F.body500, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: C.blush }}>{label}</Text>
       </View>
     </View>
   );

@@ -9,7 +9,7 @@ import { CITY, money, PAYOUT_OPTIONS, travelFee } from '@/lib/config';
 import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { useStore, type Verification } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { C, F, veil } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
 
 const VERIFY_LABEL: Record<Verification, string> = {
@@ -79,7 +79,7 @@ export default function Dashboard() {
             </View>
             <T v="h2">{req.service}</T>
             <T muted>{req.client} · {req.km.toFixed(1)} km away · {req.mins} min</T>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 14 }}>
+            <View style={{ backgroundColor: veil(0.06), borderRadius: 16, padding: 14 }}>
               <Lines rows={[
                 { label: 'Your price', value: money(req.price) },
                 { label: 'Travel fee (by distance)', value: money(travelFee(req.km)) },
@@ -114,8 +114,8 @@ export default function Dashboard() {
           onPress={() => setBusiness({ online: !biz.online })}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 20, borderRadius: 999,
-            borderWidth: 1, borderColor: biz.online ? C.sage : 'rgba(255,255,255,0.25)',
-            backgroundColor: biz.online ? 'rgba(143,211,188,0.16)' : 'rgba(255,255,255,0.07)', opacity: approved ? 1 : 0.5,
+            borderWidth: 1, borderColor: biz.online ? C.sage : veil(0.25),
+            backgroundColor: biz.online ? 'rgba(143,211,188,0.16)' : veil(0.07), opacity: approved ? 1 : 0.5,
           }}>
           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: biz.online ? C.sage : '#9A93A0' }} />
           <Text style={{ fontFamily: F.body500, fontSize: 16, color: biz.online ? C.sage : C.onNight }}>{biz.online ? 'Online' : 'Offline'}</Text>
@@ -154,7 +154,7 @@ export default function Dashboard() {
           <T v="h3">Upcoming jobs</T>
         </View>
         {upcoming.length ? upcoming.map((j) => (
-          <View key={j.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+          <View key={j.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 16, backgroundColor: veil(0.06) }}>
             <View style={{ flexShrink: 1 }}>
               <T v="strong">{j.service}</T>
               <T v="small" muted>{j.client} · {j.km.toFixed(1)} km · {money(j.price + j.travel)}</T>

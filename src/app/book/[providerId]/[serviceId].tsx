@@ -10,7 +10,7 @@ import { MODE_OPTIONS, providerById, type Mode } from '@/lib/data';
 import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { useStore } from '@/lib/store';
-import { C, themeForCategory } from '@/lib/theme';
+import { C, themeForCategory, veil } from '@/lib/theme';
 
 const SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
@@ -113,7 +113,7 @@ export default function Book() {
                 return (
                   <Pressable key={m.id} role="radio" aria-checked={on} onPress={() => setPay(m.id)} style={{ flex: wide ? 1 : undefined }}>
                     <Glass style={[{ borderRadius: 16, padding: 14, flexDirection: 'row', gap: 12, alignItems: 'center' }, on && { borderColor: C.gold, borderWidth: 2 }]}>
-                      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: on ? C.gold : 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' }}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: on ? C.gold : veil(0.4), alignItems: 'center', justifyContent: 'center' }}>
                         {on && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.gold }} />}
                       </View>
                       <View style={{ flexShrink: 1 }}>

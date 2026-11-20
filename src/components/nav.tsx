@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from './icon';
 import { useLayout } from '@/lib/layout';
-import { C, F } from '@/lib/theme';
+import { C, F, veil } from '@/lib/theme';
 
 type Item = { href: Href; label: string; icon: IconName; match: (p: string) => boolean };
 
@@ -38,9 +38,9 @@ export function Nav() {
       <View role="navigation" aria-label="Main" style={[blur, {
         position: 'absolute', left: 12, right: 12, bottom: 12 + insets.bottom, height: 68, borderRadius: 24,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8,
-        backgroundColor: 'rgba(16,12,24,0.8)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderTopColor: C.neonEdge,
-        boxShadow: '0 16px 36px rgba(0,0,0,0.5), 0 0 30px rgba(127,231,255,0.12)',
+        backgroundColor: C.navBg,
+        borderWidth: 1, borderColor: C.glassBorder, borderTopColor: C.softEdge,
+        boxShadow: `0 16px 36px ${C.shadow}, 0 0 30px rgba(247,198,212,0.12)`,
       }]}>
         {items.map((it) => {
           const on = it.match(path);
@@ -48,7 +48,7 @@ export function Nav() {
             <Pressable key={it.label} role="link" aria-current={on ? 'page' : undefined} accessibilityLabel={it.label}
               onPress={() => router.navigate(it.href)}
               style={{ minWidth: 64, minHeight: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: on ? onBg : 'transparent' }}>
-              {on && <View style={{ position: 'absolute', top: -1, width: 26, height: 3, borderRadius: 2, backgroundColor: C.cyan, boxShadow: `0 0 12px ${C.cyan}` }} />}
+              {on && <View style={{ position: 'absolute', top: -1, width: 26, height: 3, borderRadius: 2, backgroundColor: C.blush, boxShadow: `0 0 12px ${C.blush}` }} />}
               <Icon name={it.icon} color={on ? fg : fgMuted} />
               <Text style={{ fontSize: 11, fontFamily: on ? F.body600 : F.body, color: on ? fg : fgMuted }}>{it.label}</Text>
             </Pressable>
@@ -63,8 +63,8 @@ export function Nav() {
     <View role="navigation" aria-label="Main" style={{
       width: desktop ? 240 : 96, paddingTop: 28 + insets.top, paddingHorizontal: desktop ? 16 : 10, gap: 8,
       alignItems: desktop ? 'stretch' : 'center',
-      backgroundColor: 'rgba(20,15,26,0.92)',
-      borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: C.railBg,
+      borderRightWidth: 1, borderRightColor: C.line,
     }}>
       <Pressable role="link" accessibilityLabel={biz ? 'Selfcare for Business home' : 'Selfcare home'} onPress={() => router.navigate(biz ? '/biz' : '/')} style={{ marginBottom: 18, paddingHorizontal: desktop ? 12 : 0 }}>
         {desktop ? (
@@ -87,9 +87,9 @@ export function Nav() {
               flexDirection: desktop ? 'row' : 'column', alignItems: 'center', gap: desktop ? 12 : 2,
               width: desktop ? undefined : 72, minHeight: desktop ? 48 : 64, paddingHorizontal: desktop ? 14 : 0,
               justifyContent: desktop ? 'flex-start' : 'center', borderRadius: 14,
-              backgroundColor: on ? onBg : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+              backgroundColor: on ? onBg : hovered ? veil(0.05) : 'transparent',
             })}>
-            {on && <View style={{ position: 'absolute', left: desktop ? 0 : 8, top: desktop ? 12 : 20, width: 3, height: 24, borderRadius: 2, backgroundColor: C.cyan, boxShadow: `0 0 12px ${C.cyan}` }} />}
+            {on && <View style={{ position: 'absolute', left: desktop ? 0 : 8, top: desktop ? 12 : 20, width: 3, height: 24, borderRadius: 2, backgroundColor: C.blush, boxShadow: `0 0 12px ${C.blush}` }} />}
             <Icon name={it.icon} color={on ? fg : fgMuted} />
             <Text style={{ fontSize: desktop ? 15 : 12, fontFamily: on ? F.body600 : F.body, color: on ? fg : fgMuted }}>{it.label}</Text>
           </Pressable>
