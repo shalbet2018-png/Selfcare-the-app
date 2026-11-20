@@ -1,5 +1,6 @@
-// App state, saved on the device. A backend (accounts, payments,
-// verification) replaces this later.
+// App state saved on the device. When the backend is connected, accounts, the provider's
+// business and listings come from it instead (see business.ts and providers.tsx); bookings
+// and demo jobs still live here for now.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -13,11 +14,11 @@ export type Booking = {
   mode: Mode; when: 'now' | 'later'; day: string; time: string; staff: string; address: string;
   pay: PayMethod; price: number; travel: number; fee: number; total: number; cancelFee?: number;
 };
-export type BizService = { name: string; price: number; mins: number; where: 'shop' | 'home' | 'both' };
+export type BizService = { id?: string; name: string; price: number; mins: number; where: 'shop' | 'home' | 'both' };
 export type Job = { id: string; service: string; client: string; km: number; price: number; mins: number; travel: number; status: 'accepted' | 'done' };
-export type Verification = 'not-started' | 'submitted' | 'in-review' | 'approved';
+export type Verification = 'not-started' | 'submitted' | 'in-review' | 'approved' | 'rejected';
 export type Business = {
-  registered: boolean; kind: 'business' | 'freelancer'; name: string; area: string; radiusKm: number;
+  registered: boolean; kind: 'business' | 'freelancer'; name: string; category: string; area: string; radiusKm: number;
   payout: Payout; verification: Verification; online: boolean;
   services: BizService[]; jobs: Job[]; requestIndex: number;
 };
@@ -30,7 +31,7 @@ const DEFAULTS: State = {
   address: '',
   bookings: [],
   business: {
-    registered: false, kind: 'business', name: '', area: '', radiusKm: 10,
+    registered: false, kind: 'business', name: '', category: 'hair', area: '', radiusKm: 10,
     payout: 'daily', verification: 'not-started', online: false,
     services: [], jobs: [], requestIndex: 0,
   },

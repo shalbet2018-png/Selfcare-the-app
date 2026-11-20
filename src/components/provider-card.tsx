@@ -34,9 +34,9 @@ export function ProviderCard({ p }: { p: Provider }) {
               <Badge />
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <T v="small" muted>{p.area} · {p.km.toFixed(1)} km · </T>
+              <T v="small" muted>{p.area}{p.km != null ? ` · ${p.km.toFixed(1)} km` : ''} · </T>
               <Icon name="star" size={13} color={C.gold} />
-              <T v="small" muted>{p.rating.toFixed(1)}</T>
+              <T v="small" muted>{p.rating != null ? p.rating.toFixed(1) : 'New'}</T>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {p.modes.map((m) => <Chip key={m} label={m === 'shop' ? 'At the shop' : 'Comes to you'} />)}

@@ -12,6 +12,8 @@ import { BloomLoader } from '@/components/bloom-loader';
 import { Nav } from '@/components/nav';
 import { FeedbackProvider } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { ProvidersProvider } from '@/lib/providers';
 import { StoreProvider, useStore } from '@/lib/store';
 import { C, IS_LIGHT } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
@@ -20,7 +22,9 @@ SplashScreen.preventAutoHideAsync();
 
 function Shell() {
   const { phone } = useLayout();
-  const { ready } = useStore();
+  const { ready: storeReady } = useStore();
+  const { ready: authReady } = useAuth();
+  const ready = storeReady && authReady;
   const onBusinessScreen = usePathname().startsWith('/biz');
   const business = IS_BUSINESS_APP || onBusinessScreen;
   const [fontsLoaded, fontError] = useFonts({
@@ -74,7 +78,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <Shell />
+        <AuthProvider>
+          <ProvidersProvider>
+            <Shell />
+          </ProvidersProvider>
+        </AuthProvider>
       </StoreProvider>
     </SafeAreaProvider>
   );

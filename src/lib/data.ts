@@ -6,7 +6,8 @@ export type Mode = 'shop' | 'home';
 export type Service = { id: string; name: string; price: number; mins: number };
 export type Provider = {
   id: string; name: string; type: 'business' | 'freelancer'; category: string;
-  area: string; km: number; rating: number; reviews: number; modes: Mode[];
+  // km and rating are unknown for live listings until location and reviews exist.
+  area: string; km?: number; rating?: number; reviews: number; modes: Mode[];
   hours: string; staff: string[]; services: Service[];
 };
 export type Category = { id: string; label: string; blurb: string };
@@ -83,9 +84,8 @@ export const PROVIDERS: Provider[] = [
   }
 ];
 
-export function providerById(id: string | undefined) {
-  return PROVIDERS.find((p) => p.id === id);
-}
+/** Sort key for distance: unknown distances go last. */
+export const kmOrLast = (p: Provider) => p.km ?? Number.POSITIVE_INFINITY;
 
 export function fromPrice(p: Provider) {
   return Math.min(...p.services.map((s) => s.price));

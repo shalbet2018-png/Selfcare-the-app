@@ -2,13 +2,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { NotFoundView } from '@/components/not-found';
+import { LoadingView, NotFoundView } from '@/components/not-found';
 import { Screen } from '@/components/screen';
 import { Back, Btn, Field, Glass, Lines, Pill, PillRow, Segmented, T } from '@/components/ui';
 import { money, PAYMENT_METHODS, SERVICE_FEE, SERVICE_FEE_LABEL, travelFee, type PayMethod } from '@/lib/config';
-import { MODE_OPTIONS, providerById, type Mode } from '@/lib/data';
+import { MODE_OPTIONS, type Mode, type Provider, type Service } from '@/lib/data';
 import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
+import { useProvider } from '@/lib/providers';
 import { useStore } from '@/lib/store';
 import { C, themeForCategory, veil } from '@/lib/theme';
 
@@ -26,14 +27,19 @@ function nextDays(n: number) {
 
 export default function Book() {
   const { providerId, serviceId } = useLocalSearchParams<{ providerId: string; serviceId: string }>();
+  const { provider: p, loading } = useProvider(providerId);
+  const sv = p?.services.find((s) => s.id === serviceId);
+  if (!p || !sv) return loading ? <LoadingView /> : <NotFoundView />;
+  return <BookForm p={p} sv={sv} />;
+}
+
+function BookForm({ p, sv }: { p: Provider; sv: Service }) {
   const { state, set, addBooking } = useStore();
   const toast = useToast();
   const { wide } = useLayout();
-  const p = providerById(providerId);
-  const sv = p?.services.find((s) => s.id === serviceId);
   const days = useMemo(() => nextDays(7), []);
 
-  const [mode, setMode] = useState<Mode>(p && p.modes.includes(state.serviceMode) ? state.serviceMode : p?.modes[0] ?? 'shop');
+  const [mode, setMode] = useState<Mode>(p.modes.includes(state.serviceMode) ? state.serviceMode : p.modes[0] ?? 'shop');
   const [when, setWhen] = useState<'now' | 'later'>('now');
   const [day, setDay] = useState(days[0].id);
   const [time, setTime] = useState('');
@@ -41,10 +47,9 @@ export default function Book() {
   const [address, setAddress] = useState(state.address);
   const [pay, setPay] = useState<PayMethod>('mpesa');
 
-  if (!p || !sv) return <NotFoundView />;
-
   const home = mode === 'home';
-  const travel = home ? travelFee(p.km) : 0;
+  // Until client locations exist, live listings have no distance, so the base travel fee applies.
+  const travel = home ? travelFee(p.km ?? 0) : 0;
   const total = sv.price + travel + SERVICE_FEE;
   const needsTime = !home || when === 'later';
   const missing = home && !address.trim() ? 'Add your address to continue.' : needsTime && !time ? 'Pick a time to continue.' : '';
@@ -133,7 +138,7 @@ export default function Book() {
           <T v="h3">{sv.name}</T>
           <Lines rows={[
             { label: 'Service', value: money(sv.price) },
-            ...(home ? [{ label: `Travel fee (${p.km.toFixed(1)} km)`, value: money(travel) }] : []),
+            ...(home ? [{ label: p.km != null ? `Travel fee (${p.km.toFixed(1)} km)` : 'Travel fee (from)', value: money(travel) }] : []),
             { label: SERVICE_FEE_LABEL, value: money(SERVICE_FEE) },
             { label: 'Total', value: money(total), total: true },
           ]} />

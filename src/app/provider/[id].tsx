@@ -6,16 +6,17 @@ import { PhotoPlaceholder } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Back, Badge, Btn, Chip, Glass, T } from '@/components/ui';
 import { CITY, money } from '@/lib/config';
-import { modeLabel, providerById } from '@/lib/data';
+import { modeLabel } from '@/lib/data';
 import { useLayout } from '@/lib/layout';
 import { C, themeForCategory } from '@/lib/theme';
-import { NotFoundView as NotFound } from '@/components/not-found';
+import { LoadingView, NotFoundView as NotFound } from '@/components/not-found';
+import { useProvider } from '@/lib/providers';
 
 export default function ProviderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { wide, phone } = useLayout();
-  const p = providerById(id);
-  if (!p) return <NotFound />;
+  const { provider: p, loading } = useProvider(id);
+  if (!p) return loading ? <LoadingView /> : <NotFound />;
 
   const facts: [string, string][] = [
     ['Hours', p.hours],
@@ -35,9 +36,9 @@ export default function ProviderScreen() {
             <Badge />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-            <T muted>{p.type === 'freelancer' ? 'Freelancer' : 'Business'} · {p.area} · {p.km.toFixed(1)} km · </T>
+            <T muted>{p.type === 'freelancer' ? 'Freelancer' : 'Business'} · {p.area}{p.km != null ? ` · ${p.km.toFixed(1)} km` : ''} · </T>
             <Icon name="star" size={14} color={C.gold} />
-            <T muted>{p.rating.toFixed(1)}</T>
+            <T muted>{p.rating != null ? p.rating.toFixed(1) : 'New'}</T>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {p.modes.map((m) => <Chip key={m} label={modeLabel(m)} />)}

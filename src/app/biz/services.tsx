@@ -2,11 +2,15 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { LoadingView } from '@/components/not-found';
 import { Screen } from '@/components/screen';
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Btn, Field, Glass, Segmented, T } from '@/components/ui';
+import { useBusiness } from '@/lib/business';
 import { money } from '@/lib/config';
 import { useToast } from '@/lib/feedback';
-import { useStore, type BizService } from '@/lib/store';
+import type { BizService } from '@/lib/store';
+import { friendly } from '@/lib/supabase';
 
 const WHERE: { id: BizService['where']; label: string }[] = [
   { id: 'both', label: 'Shop and home' },
@@ -15,20 +19,35 @@ const WHERE: { id: BizService['where']; label: string }[] = [
 ];
 
 export default function Services() {
-  const { state, setBusiness } = useStore();
+  const b = useBusiness();
   const toast = useToast();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [mins, setMins] = useState('');
   const [where, setWhere] = useState<BizService['where']>('both');
-  const biz = state.business;
+  const [busy, setBusy] = useState(false);
+  const biz = b.biz;
+  if (b.needsSignIn) return <SignInPrompt next="/biz/services" title="Services and prices" body="Sign in to manage your services." />;
+  if (b.loading) return <LoadingView />;
   if (!biz.registered) return <Redirect href="/biz/register" />;
 
-  const valid = name.trim() && Number(price) > 0 && Number(mins) > 0;
-  const add = () => {
-    setBusiness({ services: [...biz.services, { name: name.trim(), price: Number(price), mins: Number(mins), where }] });
-    setName(''); setPrice(''); setMins(''); setWhere('both');
-    toast('Service added');
+  const valid = name.trim() && Number(price) > 0 && Number(mins) >= 5 && Number(mins) <= 720;
+  const run = async (work: () => Promise<unknown>, done: string) => {
+    setBusy(true);
+    try {
+      await work();
+      toast(done);
+      return true;
+    } catch (e) {
+      toast(friendly(e));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const add = async () => {
+    const ok = await run(() => b.addService({ name: name.trim(), price: Math.round(Number(price)), mins: Math.round(Number(mins)), where }), 'Service added');
+    if (ok) { setName(''); setPrice(''); setMins(''); setWhere('both'); }
   };
 
   return (
@@ -39,15 +58,15 @@ export default function Services() {
       {biz.services.length ? (
         <View style={{ gap: 10 }}>
           {biz.services.map((s, i) => (
-            <Glass key={`${s.name}-${i}`} style={{ borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Glass key={s.id ?? `${s.name}-${i}`} style={{ borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <View style={{ flexShrink: 1 }}>
                 <T v="strong">{s.name}</T>
                 <T v="small" muted>{s.mins} min · {WHERE.find((w) => w.id === s.where)?.label}</T>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <T v="strong">{money(s.price)}</T>
-                <Btn small kind="outline" label="Remove" a11y={`Remove ${s.name}`}
-                  onPress={() => setBusiness({ services: biz.services.filter((_, j) => j !== i) })} />
+                <Btn small kind="outline" label="Remove" a11y={`Remove ${s.name}`} disabled={busy}
+                  onPress={() => run(() => b.removeService(i), 'Service removed')} />
               </View>
             </Glass>
           ))}
@@ -62,7 +81,8 @@ export default function Services() {
           <Field style={{ flex: 1 }} label="Length (minutes)" value={mins} onChangeText={setMins} keyboardType="number-pad" />
         </View>
         <Segmented label="Where" options={WHERE} value={where} onChange={setWhere} />
-        <Btn kind="light" label="Add service" disabled={!valid} onPress={add} />
+        <Btn kind="light" label={busy ? 'Saving…' : 'Add service'} disabled={!valid || busy} onPress={add} />
+        {b.live && biz.verification !== 'approved' ? <T v="small" muted>Clients see your services once Selfcare has approved your account.</T> : null}
       </Glass>
     </Screen>
   );

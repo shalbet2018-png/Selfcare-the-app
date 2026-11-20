@@ -6,7 +6,8 @@ import { CardGrid, ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Back, Btn, Field, Glass, Pill, PillRow, T } from '@/components/ui';
 import { money } from '@/lib/config';
-import { CATEGORIES, fromPrice, PROVIDERS } from '@/lib/data';
+import { CATEGORIES, fromPrice, kmOrLast, type Provider } from '@/lib/data';
+import { useProviders } from '@/lib/providers';
 import { useStore } from '@/lib/store';
 import { themeForCategory } from '@/lib/theme';
 
@@ -26,21 +27,22 @@ export default function Search() {
   const [max, setMax] = useState(one(params.max));
   const [where, setWhere] = useState<Where>((one(params.mode) as Where) || state.serviceMode);
   const [sort, setSort] = useState<Sort>((one(params.sort) as Sort) || 'distance');
+  const { providers, loading } = useProviders();
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const by: Record<Sort, (a: (typeof PROVIDERS)[number], b: (typeof PROVIDERS)[number]) => number> = {
-      distance: (a, b) => a.km - b.km,
+    const by: Record<Sort, (a: Provider, b: Provider) => number> = {
+      distance: (a, b) => kmOrLast(a) - kmOrLast(b),
       price: (a, b) => fromPrice(a) - fromPrice(b),
-      rating: (a, b) => b.rating - a.rating,
+      rating: (a, b) => (b.rating ?? 0) - (a.rating ?? 0),
     };
-    return PROVIDERS.filter((p) =>
+    return providers.filter((p) =>
       (!cat || p.category === cat) &&
       (!max || fromPrice(p) <= Number(max)) &&
       (where === 'any' || p.modes.includes(where)) &&
       (!term || p.name.toLowerCase().includes(term) || p.category.includes(term) || p.services.some((s) => s.name.toLowerCase().includes(term))),
     ).sort(by[sort]);
-  }, [q, cat, max, where, sort]);
+  }, [providers, q, cat, max, where, sort]);
 
   // Keep the address bar (web) and deep links in step with the filters.
   const update = (patch: Record<string, string>) => router.setParams(patch);
@@ -90,7 +92,7 @@ export default function Search() {
         </View>
       ) : (
         <Glass style={{ padding: 24, gap: 10, alignItems: 'flex-start' }}>
-          <T v="h3">No matches yet</T>
+          <T v="h3">{loading ? 'Finding providers…' : 'No matches yet'}</T>
           <T muted>Try a higher price limit, another category, or switch between shop and home service.</T>
           <Btn label="Clear filters" kind="ghost" small onPress={() => { setQ(''); setCat(''); setMax(''); setWhere('any'); router.setParams({ q: '', cat: '', max: '', mode: 'any' }); }} />
         </Glass>

@@ -8,13 +8,12 @@ import { Btn, DarkCtx, Glass, Lines, Segmented, T } from '@/components/ui';
 import { CITY, money, PAYOUT_OPTIONS, travelFee } from '@/lib/config';
 import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
-import { useStore, type Verification } from '@/lib/store';
+import { LoadingView } from '@/components/not-found';
+import { useBusiness, VERIFY_LABEL } from '@/lib/business';
+import { useStore } from '@/lib/store';
+import { friendly } from '@/lib/supabase';
 import { C, F, veil } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
-
-const VERIFY_LABEL: Record<Verification, string> = {
-  'not-started': 'Not started', submitted: 'Submitted', 'in-review': 'In review', approved: 'Approved',
-};
 
 // Demo incoming requests, shown one at a time while the business is online.
 const DEMO_REQUESTS = [
@@ -24,11 +23,16 @@ const DEMO_REQUESTS = [
 ];
 
 export default function Dashboard() {
-  const { state, setBusiness } = useStore();
+  // Listing, verification, online and payouts come from the backend when connected;
+  // the demo requests and jobs below still live on this device until bookings move over.
+  const b = useBusiness();
+  const { setBusiness } = useStore();
   const toast = useToast();
   const { wide } = useLayout();
-  const biz = state.business;
+  const biz = b.biz;
+  const attempt = (work: Promise<unknown>, done?: string) => work.then(() => done && toast(done), (e) => toast(friendly(e)));
 
+  if (b.loading) return <LoadingView />;
   if (!biz.registered) {
     return (
       <Screen theme="business">
@@ -111,7 +115,7 @@ export default function Dashboard() {
         <Pressable
           role="switch" aria-checked={biz.online} aria-disabled={!approved} disabled={!approved}
           accessibilityLabel="Receive requests"
-          onPress={() => setBusiness({ online: !biz.online })}
+          onPress={() => attempt(b.setOnline(!biz.online), biz.online ? 'You are offline' : 'You are online')}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 20, borderRadius: 999,
             borderWidth: 1, borderColor: biz.online ? C.sage : veil(0.25),
@@ -127,8 +131,20 @@ export default function Dashboard() {
           <Icon name="shield" size={24} color={C.onNight} />
           <View style={{ flex: 1, gap: 8, alignItems: 'flex-start' }}>
             <T v="h3">Verification: {VERIFY_LABEL[biz.verification]}</T>
-            <T v="small" muted>You can take bookings once Selfcare has checked your documents.</T>
-            <Btn small kind="light" label="Demo: approve my account" onPress={() => { setBusiness({ verification: 'approved' }); toast('Account approved (demo)'); }} />
+            {biz.verification === 'rejected' ? (
+              <>
+                <T v="small" muted>{b.reviewNote || 'Selfcare could not approve your documents yet.'}</T>
+                <Btn small kind="light" label="Fix and resubmit" href="/biz/register" />
+              </>
+            ) : biz.verification === 'not-started' ? (
+              <>
+                <T v="small" muted>Upload your documents so Selfcare can check them.</T>
+                <Btn small kind="light" label="Upload documents" href="/biz/register" />
+              </>
+            ) : (
+              <T v="small" muted>You can take bookings once Selfcare has checked your documents{b.live ? '. This usually takes 1 to 2 working days.' : '.'}</T>
+            )}
+            {b.demoApprove ? <Btn small kind="outline" label="Demo: approve my account" onPress={() => { b.demoApprove?.(); toast('Account approved (demo)'); }} /> : null}
           </View>
         </Glass>
       )}
@@ -144,7 +160,7 @@ export default function Dashboard() {
           <T v="small" muted>From completed services on this device. Clients pay the service fee, so you keep your full price.</T>
           <T v="label" muted style={{ marginTop: 6 }}>Get paid</T>
           <Segmented label="Payout schedule" options={PAYOUT_OPTIONS} value={biz.payout}
-            onChange={(v) => { setBusiness({ payout: v }); toast(`Payouts: ${PAYOUT_OPTIONS.find((o) => o.id === v)!.label.toLowerCase()}`); }} />
+            onChange={(v) => attempt(b.setPayout(v), `Payouts: ${PAYOUT_OPTIONS.find((o) => o.id === v)!.label.toLowerCase()}`)} />
         </Glass>
       </View>
 

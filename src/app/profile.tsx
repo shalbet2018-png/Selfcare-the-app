@@ -4,15 +4,18 @@ import { View } from 'react-native';
 import { CardGrid } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, T } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
 import { useConfirm, useToast } from '@/lib/feedback';
 import { useStore } from '@/lib/store';
+import { BACKEND_ON, friendly } from '@/lib/supabase';
 
 export default function Profile() {
   const { state, reset } = useStore();
+  const { email, signOut } = useAuth();
   const toast = useToast();
   const confirmAsync = useConfirm();
   const clear = async () => {
-    if (await confirmAsync('Clear demo data?', 'This removes all bookings and business details on this device.', 'Clear')) {
+    if (await confirmAsync('Clear saved data?', 'This removes the bookings and demo business details saved on this device. Your account is not affected.', 'Clear')) {
       reset();
       toast('Cleared');
       router.navigate('/');
@@ -23,6 +26,17 @@ export default function Profile() {
       <T v="h1">Profile</T>
       <CardGrid min={300} maxCols={3}>
         {[
+          ...(BACKEND_ON ? [
+            <Glass key="account" style={{ padding: 22, gap: 10, flex: 1 }}>
+              <T v="h3">Your account</T>
+              <T muted>{email ? `Signed in as ${email}` : 'Sign in with your email to keep your details safe across devices.'}</T>
+              <View>
+                {email
+                  ? <Btn label="Sign out" kind="ghost" onPress={() => signOut().then(() => toast('Signed out'), (e) => toast(friendly(e)))} />
+                  : <Btn label="Sign in" href={{ pathname: '/sign-in', params: { next: '/profile' } }} />}
+              </View>
+            </Glass>,
+          ] : []),
           <Glass key="addr" style={{ padding: 22, gap: 10, flex: 1 }}>
             <T v="h3">Saved address</T>
             <T muted>{state.address || 'None yet. It is saved after your first home-service booking.'}</T>
@@ -33,9 +47,9 @@ export default function Profile() {
             <Btn label="Switch to Business" icon="swap" onPress={() => router.navigate('/biz')} />
           </Glass>,
           <Glass key="demo" style={{ padding: 22, gap: 10, flex: 1 }}>
-            <T v="h3">Demo data</T>
-            <T muted>This preview keeps everything on this device.</T>
-            <View><Btn label="Clear demo data" kind="ghost" onPress={clear} /></View>
+            <T v="h3">{BACKEND_ON ? 'Saved on this device' : 'Demo data'}</T>
+            <T muted>{BACKEND_ON ? 'Bookings are still kept on this device for now.' : 'This preview keeps everything on this device.'}</T>
+            <View><Btn label={BACKEND_ON ? 'Clear device data' : 'Clear demo data'} kind="ghost" onPress={clear} /></View>
           </Glass>,
         ]}
       </CardGrid>

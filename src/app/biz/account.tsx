@@ -3,14 +3,16 @@ import { router } from 'expo-router';
 import { CardGrid } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, T } from '@/components/ui';
-import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
+import { useBusiness, VERIFY_LABEL as VERIFY } from '@/lib/business';
+import { useToast } from '@/lib/feedback';
+import { friendly } from '@/lib/supabase';
 import { IS_BUSINESS_APP } from '@/lib/variant';
 
-const VERIFY = { 'not-started': 'Not started', submitted: 'Submitted', 'in-review': 'In review', approved: 'Approved' } as const;
-
 export default function Account() {
-  const { state } = useStore();
-  const biz = state.business;
+  const { biz, live } = useBusiness();
+  const { email, signOut } = useAuth();
+  const toast = useToast();
   return (
     <Screen theme="business">
       <T v="h1">Account</T>
@@ -23,6 +25,15 @@ export default function Account() {
             </T>
             <Btn small kind="light" label={biz.registered ? 'Edit details' : 'Register'} href="/biz/register" />
           </Glass>,
+          ...(live ? [
+          <Glass key="signin" style={{ padding: 22, gap: 10, flex: 1 }}>
+            <T v="h3">Your login</T>
+            <T v="small" muted>{email ? `Signed in as ${email}` : 'Not signed in'}</T>
+            {email
+              ? <Btn small kind="outline" label="Sign out" onPress={() => signOut().then(() => toast('Signed out'), (e) => toast(friendly(e)))} />
+              : <Btn small kind="light" label="Sign in" href={{ pathname: '/sign-in', params: { next: '/biz/account' } }} />}
+          </Glass>,
+          ] : []),
           ...(IS_BUSINESS_APP ? [] : [
           <Glass key="switch" style={{ padding: 22, gap: 10, flex: 1 }}>
             <T v="h3">Booking for yourself?</T>

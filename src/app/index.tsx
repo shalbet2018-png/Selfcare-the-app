@@ -9,7 +9,8 @@ import { CardGrid, ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, Segmented, T } from '@/components/ui';
 import { CITY } from '@/lib/config';
-import { CATEGORIES, MODE_OPTIONS, PROVIDERS } from '@/lib/data';
+import { CATEGORIES, kmOrLast, MODE_OPTIONS } from '@/lib/data';
+import { useProviders } from '@/lib/providers';
 import { useStore } from '@/lib/store';
 import { C, CATEGORY_GLOW, F } from '@/lib/theme';
 import { IS_BUSINESS_APP } from '@/lib/variant';
@@ -28,7 +29,8 @@ export default function Home() {
 function ClientHome() {
   const { state, set } = useStore();
   const [q, setQ] = useState('');
-  const nearby = PROVIDERS.filter((p) => p.modes.includes(state.serviceMode)).sort((a, b) => a.km - b.km);
+  const { providers, loading } = useProviders();
+  const nearby = providers.filter((p) => p.modes.includes(state.serviceMode)).sort((a, b) => kmOrLast(a) - kmOrLast(b));
   const search = () => router.push({ pathname: '/search', params: { q } });
 
   return (
@@ -82,7 +84,11 @@ function ClientHome() {
           <T v="h2">{state.serviceMode === 'home' ? 'Can come to you' : 'Near you'}</T>
           <Link href="/search"><T v="small" accent>See all</T></Link>
         </View>
-        <CardGrid>{nearby.map((p) => <ProviderCard key={p.id} p={p} />)}</CardGrid>
+        {nearby.length ? (
+          <CardGrid>{nearby.map((p) => <ProviderCard key={p.id} p={p} />)}</CardGrid>
+        ) : (
+          <T muted>{loading ? 'Finding providers…' : 'No providers here yet. Check back soon, new salons and freelancers are joining.'}</T>
+        )}
       </View>
     </Screen>
   );
