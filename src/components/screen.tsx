@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
-import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
+import { View } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion, useAnimatedRef, useScrollOffset } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from './background';
@@ -11,6 +11,8 @@ import type { BgTheme } from '@/lib/theme';
 /** Every page: themed background, safe areas, scrolling, centred content column. */
 export function Screen({ theme = 'hair', children }: { theme?: BgTheme; children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scroll = useScrollOffset(scrollRef);
   const { size } = useLayout();
   const dark = theme === 'business';
   const padX = size === 'desktop' ? 48 : size === 'tablet' ? 32 : 20;
@@ -19,13 +21,15 @@ export function Screen({ theme = 'hair', children }: { theme?: BgTheme; children
   return (
     <DarkCtx.Provider value={dark}>
       <View style={{ flex: 1 }}>
-        <Background theme={theme} />
-        <ScrollView
+        <Background theme={theme} scroll={scroll} />
+        <Animated.ScrollView
+          ref={scrollRef}
+          scrollEventThrottle={16}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingTop: padTop, paddingBottom: padBottom, paddingHorizontal: padX }}
           keyboardShouldPersistTaps="handled">
           <Animated.View entering={FadeInDown.duration(420).reduceMotion(ReduceMotion.System)} style={{ width: '100%', maxWidth: 1120, alignSelf: 'center', gap: 22 }}>{children}</Animated.View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
     </DarkCtx.Provider>
   );

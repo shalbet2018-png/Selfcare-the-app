@@ -38,9 +38,9 @@ export function Nav() {
       <View role="navigation" aria-label="Main" style={[blur, {
         position: 'absolute', left: 12, right: 12, bottom: 12 + insets.bottom, height: 68, borderRadius: 24,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8,
-        backgroundColor: 'rgba(24,18,31,0.82)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-        boxShadow: '0 16px 36px rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(16,12,24,0.8)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderTopColor: C.neonEdge,
+        boxShadow: '0 16px 36px rgba(0,0,0,0.5), 0 0 30px rgba(127,231,255,0.12)',
       }]}>
         {items.map((it) => {
           const on = it.match(path);
@@ -48,6 +48,7 @@ export function Nav() {
             <Pressable key={it.label} role="link" aria-current={on ? 'page' : undefined} accessibilityLabel={it.label}
               onPress={() => router.navigate(it.href)}
               style={{ minWidth: 64, minHeight: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: on ? onBg : 'transparent' }}>
+              {on && <View style={{ position: 'absolute', top: -1, width: 26, height: 3, borderRadius: 2, backgroundColor: C.cyan, boxShadow: `0 0 12px ${C.cyan}` }} />}
               <Icon name={it.icon} color={on ? fg : fgMuted} />
               <Text style={{ fontSize: 11, fontFamily: on ? F.body600 : F.body, color: on ? fg : fgMuted }}>{it.label}</Text>
             </Pressable>
@@ -88,6 +89,7 @@ export function Nav() {
               justifyContent: desktop ? 'flex-start' : 'center', borderRadius: 14,
               backgroundColor: on ? onBg : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
             })}>
+            {on && <View style={{ position: 'absolute', left: desktop ? 0 : 8, top: desktop ? 12 : 20, width: 3, height: 24, borderRadius: 2, backgroundColor: C.cyan, boxShadow: `0 0 12px ${C.cyan}` }} />}
             <Icon name={it.icon} color={on ? fg : fgMuted} />
             <Text style={{ fontSize: desktop ? 15 : 12, fontFamily: on ? F.body600 : F.body, color: on ? fg : fgMuted }}>{it.label}</Text>
           </Pressable>

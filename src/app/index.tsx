@@ -4,6 +4,7 @@ import { Pressable, TextInput, View } from 'react-native';
 
 import { Glow } from '@/components/background';
 import { Icon } from '@/components/icon';
+import { ImageMarquee } from '@/components/marquee';
 import { CardGrid, ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, Segmented, T } from '@/components/ui';
@@ -35,6 +36,10 @@ function ClientHome() {
       <View style={{ gap: 16 }}>
         <T v="eyebrow" muted>{greeting()} · {CITY}</T>
         <T v="h1">Time for you.</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.cyan, boxShadow: `0 0 10px ${C.cyan}` }} />
+          <T v="small" style={{ color: C.cyan, letterSpacing: 1.2 }}>{nearby.length} pros online near you</T>
+        </View>
         <Glass style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, padding: 6, borderRadius: 18, maxWidth: 640 }}>
           <Icon name="search" size={18} color={C.muted} />
           <TextInput
@@ -52,6 +57,8 @@ function ClientHome() {
         <Segmented label="Where the service happens" options={MODE_OPTIONS} value={state.serviceMode} onChange={(m) => set({ serviceMode: m })} />
       </View>
 
+      <ImageMarquee items={CATEGORIES} />
+
       <View style={{ gap: 14 }}>
         <T v="h2">Categories</T>
         <CardGrid min={150} gap={10}>
@@ -60,6 +67,7 @@ function ClientHome() {
               <Pressable role="link" style={{ flex: 1 }}>
                 <Glass style={{ padding: 16, minHeight: 116, justifyContent: 'flex-end', gap: 2, borderRadius: 20, flex: 1, overflow: 'hidden' }}>
                   <View style={{ position: 'absolute', right: -26, top: -26 }}><Glow color={CATEGORY_GLOW[c.id] ?? C.gold} size={104} /></View>
+                  <View style={{ position: 'absolute', left: 16, top: 14, width: 22, height: 2, borderRadius: 1, backgroundColor: CATEGORY_GLOW[c.id] ?? C.gold, boxShadow: `0 0 8px ${CATEGORY_GLOW[c.id] ?? C.gold}` }} />
                   <T v="h3" style={{ fontFamily: F.display400 }}>{c.label}</T>
                   <T v="small" muted>{c.blurb}</T>
                 </Glass>

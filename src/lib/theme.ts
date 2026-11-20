@@ -19,6 +19,10 @@ export const C = {
   onGold: '#1A1320',
   rose: '#E8A3B4',
   sage: '#8FD3BC',
+  // Futuristic neon accents: holographic edges, grid lines, glows.
+  cyan: '#7FE7FF',
+  violet: '#B69CFF',
+  neonEdge: 'rgba(127,231,255,0.35)',
   // Kept for older call sites: same as ink / muted now the whole app is dark.
   onNight: '#F5EFF4',
   onNightMuted: '#B9AEC2',

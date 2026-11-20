@@ -1,30 +1,23 @@
 import { Link } from 'expo-router';
-import { useId, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
+import { HoloArt } from './holo-art';
 import { Icon } from './icon';
 import { Badge, Chip, Glass, T } from './ui';
 import { money } from '@/lib/config';
 import { fromPrice, type Provider } from '@/lib/data';
-import { C, F, PHOTO_TINTS } from '@/lib/theme';
+import { C, F } from '@/lib/theme';
 
-/** Stand-in for a provider's photo until real images exist. */
-export function PhotoPlaceholder({ category, height, label = 'Photo', radius = 0 }: { category: string; height: number; label?: string; radius?: number }) {
-  const [a, b] = PHOTO_TINTS[category] ?? PHOTO_TINTS.hair;
-  const gid = `ph${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+/** Stand-in for a provider's photo until real images exist: generated holographic art with a HUD tag. */
+export function PhotoPlaceholder({ category, height, label = 'Photo', radius = 0, seed }: { category: string; height: number; label?: string; radius?: number; seed?: string }) {
   return (
-    <View style={{ height, borderRadius: radius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 10 10">
-        <Defs>
-          <LinearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={a} />
-            <Stop offset="1" stopColor={b} />
-          </LinearGradient>
-        </Defs>
-        <Rect x={0} y={0} width={10} height={10} fill={`url(#${gid})`} />
-      </Svg>
-      <Text style={{ fontFamily: F.body500, fontSize: 11, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
+    <View style={{ height, borderRadius: radius, overflow: 'hidden' }}>
+      <HoloArt category={category} seed={seed} />
+      <View style={{ position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(10,8,16,0.55)', borderWidth: 1, borderColor: C.neonEdge }}>
+        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: C.cyan }} />
+        <Text style={{ fontFamily: F.body500, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: C.cyan }}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -34,7 +27,7 @@ export function ProviderCard({ p }: { p: Provider }) {
     <Link href={{ pathname: '/provider/[id]', params: { id: p.id } }} asChild>
       <Pressable role="link" accessibilityLabel={`${p.name}, ${p.area}, from ${money(fromPrice(p))}`} style={{ flex: 1 }}>
         <Glass style={{ overflow: 'hidden', flex: 1 }}>
-          <PhotoPlaceholder category={p.category} height={150} />
+          <PhotoPlaceholder category={p.category} height={150} seed={p.id} />
           <View style={{ padding: 16, gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <T v="h3" style={{ flexShrink: 1 }} numberOfLines={1}>{p.name}</T>

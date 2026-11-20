@@ -26,7 +26,7 @@ export function T({ v = 'body', muted, style, children, numberOfLines, accent }:
   );
 }
 const ts = StyleSheet.create({
-  h1: { fontFamily: F.display300, fontSize: 38, lineHeight: 42, letterSpacing: -0.5 },
+  h1: { fontFamily: F.display300, fontSize: 38, lineHeight: 42, letterSpacing: -0.5, textShadowColor: 'rgba(182,156,255,0.55)', textShadowRadius: 18 },
   h2: { fontFamily: F.display400, fontSize: 24, lineHeight: 30 },
   h3: { fontFamily: F.display500, fontSize: 19, lineHeight: 24 },
   big: { fontFamily: F.display300, fontSize: 40, lineHeight: 46 },
@@ -44,9 +44,10 @@ export function Glass({ style, children, light }: { style?: StyleProp<ViewStyle>
     <View style={[{
       backgroundColor: light ? C.pearl : C.glass,
       borderColor: light ? 'rgba(227,194,138,0.4)' : C.glassBorder,
-      borderTopColor: light ? 'rgba(227,194,138,0.6)' : 'rgba(255,255,255,0.2)',
+      borderTopColor: light ? 'rgba(227,194,138,0.6)' : C.neonEdge,
+      borderLeftColor: light ? 'rgba(227,194,138,0.5)' : 'rgba(182,156,255,0.22)',
       borderWidth: 1, borderRadius: R.lg,
-      boxShadow: '0 14px 34px rgba(0,0,0,0.32)',
+      boxShadow: '0 14px 34px rgba(0,0,0,0.32), 0 0 28px rgba(127,231,255,0.07), inset 0 1px 0 rgba(255,255,255,0.06)',
     }, style]}>
       {children}
     </View>
@@ -75,7 +76,7 @@ export function Btn({ label, onPress, href, kind = 'dark', small, block, disable
         bs.btn, small && bs.small, block && bs.block,
         { backgroundColor: bg },
         kind === 'outline' && { borderWidth: 1, borderColor: 'rgba(245,239,244,0.4)' },
-        primary && !disabled && { boxShadow: '0 8px 22px rgba(227,194,138,0.28)' },
+        primary && !disabled && { boxShadow: '0 8px 22px rgba(227,194,138,0.28), 0 0 18px rgba(227,194,138,0.35)' },
         disabled && { opacity: 0.45 },
         style,
       ])}>

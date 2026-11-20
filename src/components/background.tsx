@@ -1,9 +1,10 @@
-// Glowing colour fields plus drifting, bouncing glass bubbles, behind every screen.
+// Glowing colour fields, parallax layers, plus drifting, bouncing glass bubbles, behind every screen.
 import { memo, useId, useRef } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Ellipse, RadialGradient, Rect, Stop } from 'react-native-svg';
 
+import { ParallaxLayers } from './parallax';
 import { BACKGROUNDS, type BgTheme } from '@/lib/theme';
 
 /** One glass orb, drawn once; the Bubbles layer moves it around. */
@@ -152,7 +153,8 @@ export function Glow({ color, size }: { color: string; size: number }) {
   );
 }
 
-export function Background({ theme }: { theme: BgTheme }) {
+/** Colour fields, parallax star/aurora/grid layers (moved by `scroll`), then the bouncing bubbles on top. */
+export function Background({ theme, scroll }: { theme: BgTheme; scroll?: SharedValue<number> }) {
   const bg = BACKGROUNDS[theme];
   const uid = `bg${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
@@ -171,6 +173,7 @@ export function Background({ theme }: { theme: BgTheme }) {
           <Ellipse key={i} cx={x} cy={y} rx={60} ry={45} fill={`url(#${uid}${i})`} />
         ))}
       </Svg>
+      <ParallaxLayers scroll={scroll} />
       <Bubbles />
     </View>
   );
