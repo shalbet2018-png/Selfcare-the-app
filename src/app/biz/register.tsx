@@ -17,7 +17,9 @@ import { STATUS_TONES } from '@/lib/theme';
 type Kind = 'business' | 'freelancer';
 type Picked = Partial<Record<DocKind, DocumentPicker.DocumentPickerAsset>>;
 
-function DocPicker({ label, file, onPick }: { label: string; file?: DocumentPicker.DocumentPickerAsset; onPick: (f: DocumentPicker.DocumentPickerAsset) => void }) {
+function DocPicker({ label, file, onFile, onPick }: {
+  label: string; file?: DocumentPicker.DocumentPickerAsset; onFile?: boolean; onPick: (f: DocumentPicker.DocumentPickerAsset) => void;
+}) {
   const pick = async () => {
     const res = await DocumentPicker.getDocumentAsync({ type: DOC_TYPES, copyToCacheDirectory: true });
     if (!res.canceled && res.assets[0]) onPick(res.assets[0]);
@@ -26,8 +28,8 @@ function DocPicker({ label, file, onPick }: { label: string; file?: DocumentPick
     <View style={{ gap: 6 }}>
       <T v="label" muted>{label}</T>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <Btn small kind="outline" label={file ? 'Change file' : 'Choose file'} a11y={`Choose file: ${label}`} onPress={pick} />
-        <T v="small" muted>{file?.name || 'No file chosen'}</T>
+        <Btn small kind="outline" label={file || onFile ? 'Change file' : 'Choose file'} a11y={`Choose file: ${label}`} onPress={pick} />
+        <T v="small" muted>{file?.name || (onFile ? 'Already uploaded' : 'No file chosen')}</T>
       </View>
     </View>
   );
@@ -59,11 +61,13 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
   // Documents are needed to (re)apply: on first registration and after a rejection.
   const applying = first || biz.verification === 'rejected' || biz.verification === 'not-started';
   const docs = DOCS_FOR[kind];
-  const docsMissing = b.live && applying && docs.some(([k]) => !files[k]);
+  // Changing between business and freelancer needs the other kind's documents, so only count matching ones.
+  const onFile = (k: DocKind) => b.docsOnFile.includes(k);
+  const docsMissing = b.live && applying && docs.some(([k]) => !files[k] && !onFile(k));
   const bigDoc = docs.map(([k]) => files[k]).find(docTooBig);
   const missing = !name.trim() ? 'Add your business or display name.'
     : !area.trim() ? 'Add your area.'
-    : docsMissing ? 'Add both documents so we can verify you.'
+    : docsMissing ? 'Add the missing documents so we can verify you.'
     : bigDoc ? `${bigDoc.name} is over 10 MB. Choose a smaller file.` : '';
 
   const submit = async () => {
@@ -118,7 +122,7 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
             {!applying ? ' Already submitted; choose a file only to replace it.' : ''}
           </T>
           {docs.map(([k, label]) => (
-            <DocPicker key={k} label={label} file={files[k]} onPick={(f) => setFiles((s) => ({ ...s, [k]: f }))} />
+            <DocPicker key={k} label={label} file={files[k]} onFile={onFile(k)} onPick={(f) => setFiles((s) => ({ ...s, [k]: f }))} />
           ))}
         </View>
         <Btn kind="light" label={busy ? 'Saving…' : applying ? 'Submit for verification' : 'Save'} disabled={!!missing || busy} onPress={submit} />

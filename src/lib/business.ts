@@ -31,10 +31,11 @@ type Row = {
   verification: Verification; online: boolean;
   services: { id: string; name: string; price: number; mins: number; where_offered: BizService['where'] }[];
   provider_private: { payout: Payout; review_note: string | null } | { payout: Payout; review_note: string | null }[] | null;
+  provider_documents: { kind: DocKind }[];
 };
 
 const SELECT = 'id, kind, name, category, area, radius_km, verification, online, '
-  + 'services(id, name, price, mins, where_offered), provider_private(payout, review_note)';
+  + 'services(id, name, price, mins, where_offered), provider_private(payout, review_note), provider_documents(kind)';
 
 /** Raises the Supabase error, if any, so callers can show it. */
 function check<T extends { error: unknown }>(res: T): T {
@@ -75,7 +76,7 @@ export function useBusiness() {
   if (!supabase) {
     const biz = store.state.business;
     return {
-      live, loading: false, needsSignIn: false, biz, reviewNote: null as string | null,
+      live, loading: false, needsSignIn: false, biz, reviewNote: null as string | null, docsOnFile: [] as DocKind[],
       saveDetails: async (d: Details) => {
         store.setBusiness({ ...d, registered: true, verification: biz.registered ? biz.verification : 'submitted' });
       },
@@ -108,6 +109,8 @@ export function useBusiness() {
 
   return {
     live, loading, needsSignIn: authReady && !userId, biz, reviewNote: priv?.review_note ?? null,
+    /** Document kinds already uploaded, so a resubmission only needs the ones being replaced or missing. */
+    docsOnFile: (row?.provider_documents ?? []).map((d) => d.kind),
 
     saveDetails: async (d: Details) => {
       const fields = { kind: d.kind, name: d.name, category: d.category, area: d.area, radius_km: d.radiusKm };

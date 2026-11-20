@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { CardGrid } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Btn, Glass, T } from '@/components/ui';
+import { useIsAdmin } from '@/lib/admin';
 import { useAuth } from '@/lib/auth';
 import { useConfirm, useToast } from '@/lib/feedback';
 import { useStore } from '@/lib/store';
@@ -12,6 +13,7 @@ import { BACKEND_ON, friendly } from '@/lib/supabase';
 export default function Profile() {
   const { state, reset } = useStore();
   const { email, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const toast = useToast();
   const confirmAsync = useConfirm();
   const clear = async () => {
@@ -35,6 +37,13 @@ export default function Profile() {
                   ? <Btn label="Sign out" kind="ghost" onPress={() => signOut().then(() => toast('Signed out'), (e) => toast(friendly(e)))} />
                   : <Btn label="Sign in" href={{ pathname: '/sign-in', params: { next: '/profile' } }} />}
               </View>
+            </Glass>,
+          ] : []),
+          ...(isAdmin ? [
+            <Glass key="team" style={{ padding: 22, gap: 10, flex: 1 }}>
+              <T v="h3">Selfcare team</T>
+              <T muted>Check new businesses’ documents and approve them, or ask for changes.</T>
+              <Btn label="Review businesses" icon="shield" onPress={() => router.navigate('/admin')} />
             </Glass>,
           ] : []),
           <Glass key="addr" style={{ padding: 22, gap: 10, flex: 1 }}>

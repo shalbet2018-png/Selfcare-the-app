@@ -44,21 +44,18 @@ Supabase's built-in email sender is only for testing. It sends a handful of emai
 
 ## Approving a provider
 
-There is no admin screen yet. To approve a business, open the **SQL Editor** and run:
+Selfcare team members review businesses in the app: **Profile**, then **Review businesses** (the card only shows for admins), or go to `/admin`. Open a business to see its documents and services, then **Approve** it or **Send back with this note**. The owner sees the note on their registration page and can resubmit; documents already uploaded do not need uploading again.
+
+### Making someone an admin
+
+Admins can only be made from the dashboard, never from the app. After the person has signed in to the app once, open the **SQL Editor** and run:
 
 ```sql
--- See who is waiting
-select id, name, kind, area, verification, created_at from public.providers order by created_at desc;
-
--- Approve one
-update public.providers set verification = 'approved' where id = '<provider id>';
-
--- Or ask for changes. The provider sees the note in the app and can resubmit.
-update public.providers set verification = 'rejected' where id = '<provider id>';
-update public.provider_private set review_note = 'The permit photo is blurry. Please upload a clearer one.' where provider_id = '<provider id>';
+update public.profiles set role = 'admin'
+where id = (select id from auth.users where email = 'teammate@example.com');
 ```
 
-Their documents are in **Storage**, in the **provider-documents** bucket, in a folder named after their user id.
+Change `'admin'` to `'client'` to remove it again. Documents are also in **Storage**, in the **provider-documents** bucket, in a folder named after the owner's user id.
 
 ## Web and app-store builds
 
