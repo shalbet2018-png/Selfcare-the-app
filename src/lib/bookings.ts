@@ -70,6 +70,8 @@ function toBooking(r: Row): Booking {
   };
 }
 
+let channelSeq = 0;
+
 /** Loads bookings matching one column, and reloads whenever one of them changes. */
 function useLiveBookings(column: 'client_id' | 'provider_id', value: string | null) {
   const [loaded, setLoaded] = useState<{ key: string; list: Booking[] } | null>(null);
@@ -93,7 +95,10 @@ function useLiveBookings(column: 'client_id' | 'provider_id', value: string | nu
     let stale = false;
     const refresh = () => load().then((r) => { if (!stale) apply(r); });
     refresh();
-    const channel = db.channel(`bookings-${key}`)
+    // A fresh name per subscription: removeChannel() finishes asynchronously, and supabase-js hands back an
+    // existing channel with the same name, so reusing one throws "cannot add postgres_changes callbacks
+    // after subscribe()" when this effect runs again (leaving and returning to the screen, React dev mode).
+    const channel = db.channel(`bookings-${key}-${++channelSeq}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `${column}=eq.${value}` }, refresh)
       .subscribe();
     return () => { stale = true; db.removeChannel(channel); };
