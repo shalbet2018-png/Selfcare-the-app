@@ -26,6 +26,19 @@ export const supabase = url && key
 /** True when the app is connected to a real backend; false means demo data on this device. */
 export const BACKEND_ON = !!supabase;
 
+/** Public web address of a listing photo in the provider-photos bucket. */
+export function photoUrl(path: string) {
+  return supabase ? supabase.storage.from('provider-photos').getPublicUrl(path).data.publicUrl : '';
+}
+
+type PhotoRow = { path: string; sort: number; created_at: string };
+/** Photo addresses in display order: cover (lowest sort) first, then oldest first. */
+export function orderedPhotos(rows: PhotoRow[] | null | undefined) {
+  return [...(rows ?? [])]
+    .sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))
+    .map((r) => photoUrl(r.path));
+}
+
 // On phones, only refresh the sign-in token while the app is in the foreground.
 if (supabase && Platform.OS !== 'web') {
   AppState.addEventListener('change', (state) => {

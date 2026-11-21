@@ -1,5 +1,7 @@
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { PhotoPlaceholder } from '@/components/provider-card';
@@ -11,6 +13,28 @@ import { useLayout } from '@/lib/layout';
 import { C, themeForCategory } from '@/lib/theme';
 import { LoadingView, NotFoundView as NotFound } from '@/components/not-found';
 import { useProvider } from '@/lib/providers';
+
+/** The listing's photos: one large, with a strip of thumbnails to switch between them. */
+function Gallery({ photos, name, height }: { photos: string[]; name: string; height: number }) {
+  const [at, setAt] = useState(0);
+  const shown = photos[Math.min(at, photos.length - 1)];
+  return (
+    <View style={{ gap: 8 }}>
+      <Image source={{ uri: shown }} contentFit="cover" transition={200} accessibilityLabel={`${name} photo ${at + 1} of ${photos.length}`}
+        style={{ height, width: '100%', borderRadius: 22, backgroundColor: C.glass }} />
+      {photos.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {photos.map((u, i) => (
+            <Pressable key={u} role="button" accessibilityLabel={`Show photo ${i + 1}`} onPress={() => setAt(i)}
+              style={{ borderRadius: 12, borderWidth: 2, borderColor: i === at ? C.gold : 'transparent', overflow: 'hidden' }}>
+              <Image source={{ uri: u }} contentFit="cover" style={{ width: 72, height: 54 }} />
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+}
 
 export default function ProviderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,7 +54,9 @@ export default function ProviderScreen() {
       <Back href="/search" label="Results" />
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 22, alignItems: 'flex-start' }}>
         <View style={{ flex: wide ? 1 : undefined, alignSelf: 'stretch', gap: 14 }}>
-          <PhotoPlaceholder category={p.category} height={phone ? 200 : 280} label="Portfolio photos" radius={22} />
+          {p.photos?.length
+            ? <Gallery photos={p.photos} name={p.name} height={phone ? 240 : 340} />
+            : <PhotoPlaceholder category={p.category} height={phone ? 200 : 280} label="Portfolio photos" radius={22} />}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <T v="h1">{p.name}</T>
             <Badge />

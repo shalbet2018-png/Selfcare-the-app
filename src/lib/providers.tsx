@@ -3,12 +3,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { PROVIDERS, type Mode, type Provider } from './data';
-import { supabase } from './supabase';
+import { orderedPhotos, supabase } from './supabase';
 
 type Where = 'shop' | 'home' | 'both';
 type Row = {
   id: string; kind: 'business' | 'freelancer'; name: string; category: string; area: string;
   hours: string; staff: string[]; online: boolean;
+  provider_photos: { path: string; sort: number; created_at: string }[];
   services: { id: string; name: string; price: number; mins: number; where_offered: Where }[];
 };
 
@@ -24,6 +25,7 @@ function toProvider(r: Row): Provider {
   return {
     id: r.id, name: r.name, type: r.kind, category: r.category, area: r.area,
     reviews: 0, hours: r.hours || 'Hours not listed yet', staff: r.staff ?? [], online: r.online,
+    photos: orderedPhotos(r.provider_photos),
     modes: modesFrom(r.services),
     services: r.services.map(({ id, name, price, mins }) => ({ id, name, price, mins })),
   };
@@ -48,7 +50,8 @@ export function ProvidersProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     supabase
       .from('providers')
-      .select('id, kind, name, category, area, hours, staff, online, services(id, name, price, mins, where_offered)')
+      .select('id, kind, name, category, area, hours, staff, online, services(id, name, price, mins, where_offered), '
+        + 'provider_photos(path, sort, created_at)')
       // The database already hides unapproved listings from other people; this also hides your own.
       .eq('verification', 'approved')
       .order('created_at', { ascending: false })
@@ -57,7 +60,7 @@ export function ProvidersProvider({ children }: { children: ReactNode }) {
         else {
           setError('');
           // A listing with no services has nothing to book yet.
-          setProviders((data as Row[]).filter((r) => r.services.length).map(toProvider));
+          setProviders((data as unknown as Row[]).filter((r) => r.services.length).map(toProvider));
         }
         setLoading(false);
       });

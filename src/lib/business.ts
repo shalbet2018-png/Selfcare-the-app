@@ -2,12 +2,13 @@
 // Connected: reads and writes the backend. Not connected: the demo copy saved on this device.
 // Screens use one hook either way.
 import type { DocumentPickerAsset } from 'expo-document-picker';
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from './auth';
 import type { Payout } from './config';
 import { useStore, type BizService, type Business, type Verification } from './store';
-import { supabase } from './supabase';
+import { photoUrl, supabase } from './supabase';
 
 export type DocKind = 'business-registration' | 'operating-permit' | 'id-or-passport' | 'selfie';
 export const DOCS_FOR: Record<Business['kind'], [DocKind, string][]> = {
@@ -19,6 +20,12 @@ export const DOCS_FOR: Record<Business['kind'], [DocKind, string][]> = {
 export const DOC_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 export const DOC_MAX_BYTES = 10 * 1024 * 1024;
 export const docTooBig = (file?: DocumentPickerAsset) => !!file?.size && file.size > DOC_MAX_BYTES;
+
+/** What the public provider-photos bucket accepts (see supabase/schema.sql). */
+export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const MAX_PHOTOS = 10;
+export type BizPhoto = { id: string; path: string; url: string; sort: number };
 
 export const VERIFY_LABEL: Record<Verification, string> = {
   'not-started': 'Not started', submitted: 'Submitted', 'in-review': 'In review', approved: 'Approved', rejected: 'Needs changes',
@@ -32,10 +39,12 @@ type Row = {
   services: { id: string; name: string; price: number; mins: number; where_offered: BizService['where'] }[];
   provider_private: { payout: Payout; review_note: string | null } | { payout: Payout; review_note: string | null }[] | null;
   provider_documents: { kind: DocKind }[];
+  provider_photos: { id: string; path: string; sort: number; created_at: string }[];
 };
 
 const SELECT = 'id, kind, name, category, area, radius_km, verification, online, '
-  + 'services(id, name, price, mins, where_offered), provider_private(payout, review_note), provider_documents(kind)';
+  + 'services(id, name, price, mins, where_offered), provider_private(payout, review_note), provider_documents(kind), '
+  + 'provider_photos(id, path, sort, created_at)';
 
 /** Raises the Supabase error, if any, so callers can show it. */
 function check<T extends { error: unknown }>(res: T): T {
@@ -78,6 +87,12 @@ export function useBusiness() {
     return {
       live, loading: false, needsSignIn: false, biz, reviewNote: null as string | null, docsOnFile: [] as DocKind[],
       providerId: null as string | null,
+      photos: [] as BizPhoto[],
+      addPhotos: async (_files: ImagePickerAsset[], _onProgress?: (done: number) => void) => {
+        throw new Error('Photos are saved once the app is connected to Selfcare.');
+      },
+      removePhoto: async (_id: string) => {},
+      makeCover: async (_id: string) => {},
       saveDetails: async (d: Details) => {
         store.setBusiness({ ...d, registered: true, verification: biz.registered ? biz.verification : 'submitted' });
       },
@@ -111,6 +126,57 @@ export function useBusiness() {
   return {
     live, loading, needsSignIn: authReady && !userId, biz, reviewNote: priv?.review_note ?? null,
     providerId: row?.id ?? null,
+    /** Cover first (lowest sort), then oldest first. */
+    photos: [...(row?.provider_photos ?? [])]
+      .sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))
+      .map((p): BizPhoto => ({ id: p.id, path: p.path, sort: p.sort, url: photoUrl(p.path) })),
+
+    /** Uploads photos to the public listing bucket, one at a time, then records them. */
+    addPhotos: async (files: ImagePickerAsset[], onProgress?: (done: number) => void) => {
+      const r = needRow();
+      const have = r.provider_photos.length;
+      if (have + files.length > MAX_PHOTOS) throw new Error(`You can have up to ${MAX_PHOTOS} photos. Remove some first.`);
+      let sort = Math.max(0, ...r.provider_photos.map((p) => p.sort)) + 1;
+      let done = 0;
+      try {
+        for (const f of files) {
+          const type = f.mimeType ?? 'image/jpeg';
+          const label = f.fileName || 'One photo';
+          if (!PHOTO_TYPES.includes(type)) throw new Error(`${label} is not a JPG, PNG or WebP photo.`);
+          const body = await (await fetch(f.uri)).arrayBuffer();
+          if (body.byteLength > PHOTO_MAX_BYTES) throw new Error(`${label} is over 5 MB. Choose a smaller photo.`);
+          const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+          const path = `${userId}/photo-${Date.now()}-${done}.${ext}`;
+          check(await db.storage.from('provider-photos').upload(path, body, { contentType: type }));
+          const saved = await db.from('provider_photos').insert({ provider_id: r.id, path, sort: sort++ });
+          if (saved.error) {
+            await db.storage.from('provider-photos').remove([path]);
+            throw saved.error;
+          }
+          onProgress?.(++done);
+        }
+      } finally {
+        // Show whatever made it, even if a later photo failed.
+        if (done) await reload();
+      }
+    },
+
+    removePhoto: async (id: string) => {
+      const p = (row?.provider_photos ?? []).find((x) => x.id === id);
+      if (!p) return;
+      check(await db.from('provider_photos').delete().eq('id', id));
+      // The record is what clients see; a leftover file is harmless if this fails.
+      await db.storage.from('provider-photos').remove([p.path]);
+      await reload();
+    },
+
+    /** Moves a photo to the front, where it becomes the cover on cards and the listing. */
+    makeCover: async (id: string) => {
+      const photos = row?.provider_photos ?? [];
+      const lowest = Math.min(0, ...photos.map((p) => p.sort));
+      check(await db.from('provider_photos').update({ sort: lowest - 1 }).eq('id', id));
+      await reload();
+    },
     /** Document kinds already uploaded, so a resubmission only needs the ones being replaced or missing. */
     docsOnFile: (row?.provider_documents ?? []).map((d) => d.kind),
 

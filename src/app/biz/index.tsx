@@ -220,6 +220,16 @@ export default function Dashboard() {
         </Glass>
       )}
 
+      {b.live && !b.photos.length ? (
+        <Glass style={{ padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <View style={{ flexShrink: 1, gap: 2 }}>
+            <T v="strong">Add photos to your listing</T>
+            <T v="small" muted>Clients choose with their eyes. Show your shop and your best work.</T>
+          </View>
+          <Btn small kind="light" label="Add photos" href="/biz/photos" />
+        </Glass>
+      ) : null}
+
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 14, alignItems: wide ? 'flex-start' : 'stretch' }}>
         {b.live ? liveRequestCard : requestCard}
         <Glass style={{ padding: 22, gap: 10, flex: wide ? 1 : undefined }}>

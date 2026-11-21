@@ -54,6 +54,15 @@ export default function Services() {
     <Screen theme="business">
       <T v="h1">Services and prices</T>
       <T v="lead" muted>You set your own prices. Home calls add a travel fee by distance automatically.</T>
+      {b.live ? (
+        <Glass style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <View style={{ flexShrink: 1 }}>
+            <T v="strong">Photos</T>
+            <T v="small" muted>{b.photos.length ? `${b.photos.length} on your listing` : 'Add photos of your shop and work so clients pick you'}</T>
+          </View>
+          <Btn small kind={b.photos.length ? 'outline' : 'light'} label={b.photos.length ? 'Manage photos' : 'Add photos'} href="/biz/photos" />
+        </Glass>
+      ) : null}
 
       {biz.services.length ? (
         <View style={{ gap: 10 }}>

@@ -11,6 +11,8 @@ export type Provider = {
   hours: string; staff: string[]; services: Service[];
   /** Live listings only: whether they take "as soon as possible" home requests right now. */
   online?: boolean;
+  /** Live listings only: photo addresses, cover first. */
+  photos?: string[];
 };
 export type Category = { id: string; label: string; blurb: string };
 

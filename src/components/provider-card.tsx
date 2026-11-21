@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -27,7 +28,10 @@ export function ProviderCard({ p }: { p: Provider }) {
     <Link href={{ pathname: '/provider/[id]', params: { id: p.id } }} asChild>
       <Pressable role="link" accessibilityLabel={`${p.name}, ${p.area}, from ${money(fromPrice(p))}`} style={{ flex: 1 }}>
         <Glass style={{ overflow: 'hidden', flex: 1 }}>
-          <PhotoPlaceholder category={p.category} height={150} seed={p.id} />
+          {p.photos?.length ? (
+            <Image source={{ uri: p.photos[0] }} contentFit="cover" transition={200} accessibilityLabel={`${p.name} photo`}
+              style={{ height: 150, width: '100%', backgroundColor: C.glass }} />
+          ) : <PhotoPlaceholder category={p.category} height={150} seed={p.id} />}
           <View style={{ padding: 16, gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <T v="h3" style={{ flexShrink: 1 }} numberOfLines={1}>{p.name}</T>
