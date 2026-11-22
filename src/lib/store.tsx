@@ -15,6 +15,8 @@ export type Booking = {
   pay: PayMethod; price: number; travel: number; fee: number; total: number; cancelFee?: number;
   // Only on bookings from the backend.
   cancelledBy?: 'client' | 'provider'; clientName?: string; clientPhone?: string; mins?: number;
+  /** Home visits: how far the business travels, in km. */
+  km?: number;
 };
 export type BizService = { id?: string; name: string; price: number; mins: number; where: 'shop' | 'home' | 'both' };
 export type Job = { id: string; service: string; client: string; km: number; price: number; mins: number; travel: number; status: 'accepted' | 'done' };
@@ -24,7 +26,9 @@ export type Business = {
   payout: Payout; verification: Verification; online: boolean;
   services: BizService[]; jobs: Job[]; requestIndex: number;
 };
-export type State = { serviceMode: Mode; address: string; bookings: Booking[]; business: Business };
+/** The client's last shared location, kept on this device only (cleared on sign-out). */
+export type SavedLocation = { lat: number; lng: number; at: string };
+export type State = { serviceMode: Mode; address: string; location?: SavedLocation; bookings: Booking[]; business: Business };
 
 const KEY = 'selfcare-v1';
 

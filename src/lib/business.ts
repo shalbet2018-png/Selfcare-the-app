@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from './auth';
 import type { Payout } from './config';
 import { useStore, type BizService, type Business, type Verification } from './store';
+import { hoursSummary, type OpenHours } from './hours';
+import type { Point } from './location';
 import { photoUrl, supabase } from './supabase';
 
 export type DocKind = 'business-registration' | 'operating-permit' | 'id-or-passport' | 'selfie';
@@ -35,6 +37,7 @@ export type Details = Pick<Business, 'kind' | 'name' | 'category' | 'area' | 'ra
 
 type Row = {
   id: string; kind: Business['kind']; name: string; category: string; area: string; radius_km: number;
+  lat: number | null; lng: number | null; open_hours: OpenHours;
   verification: Verification; online: boolean;
   services: { id: string; name: string; price: number; mins: number; where_offered: BizService['where'] }[];
   provider_private: { payout: Payout; review_note: string | null } | { payout: Payout; review_note: string | null }[] | null;
@@ -42,7 +45,7 @@ type Row = {
   provider_photos: { id: string; path: string; sort: number; created_at: string }[];
 };
 
-const SELECT = 'id, kind, name, category, area, radius_km, verification, online, '
+const SELECT = 'id, kind, name, category, area, radius_km, lat, lng, open_hours, verification, online, '
   + 'services(id, name, price, mins, where_offered), provider_private(payout, review_note), provider_documents(kind), '
   + 'provider_photos(id, path, sort, created_at)';
 
@@ -86,6 +89,9 @@ export function useBusiness() {
     const biz = store.state.business;
     return {
       live, loading: false, needsSignIn: false, biz, reviewNote: null as string | null, docsOnFile: [] as DocKind[],
+      location: null as Point | null, openHours: {} as OpenHours,
+      setLocation: async (_p: Point) => {},
+      saveHours: async (_h: OpenHours) => {},
       providerId: null as string | null,
       photos: [] as BizPhoto[],
       addPhotos: async (_files: ImagePickerAsset[], _onProgress?: (done: number) => void) => {
@@ -126,6 +132,20 @@ export function useBusiness() {
   return {
     live, loading, needsSignIn: authReady && !userId, biz, reviewNote: priv?.review_note ?? null,
     providerId: row?.id ?? null,
+    /** Where the shop is (for distance and home visits), if set. */
+    location: row && row.lat != null && row.lng != null ? { lat: row.lat, lng: row.lng } as Point : null,
+    openHours: (row?.open_hours ?? {}) as OpenHours,
+
+    setLocation: async (p: Point) => {
+      check(await db.from('providers').update({ lat: p.lat, lng: p.lng }).eq('id', needRow().id));
+      await reload();
+    },
+
+    /** Saves the weekly hours, plus a readable summary in the older free-text field. */
+    saveHours: async (h: OpenHours) => {
+      check(await db.from('providers').update({ open_hours: h, hours: hoursSummary(h) }).eq('id', needRow().id));
+      await reload();
+    },
     /** Cover first (lowest sort), then oldest first. */
     photos: [...(row?.provider_photos ?? [])]
       .sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))

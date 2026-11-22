@@ -7,6 +7,7 @@ import { Screen } from '@/components/screen';
 import { Btn, DarkCtx, Glass, Lines, Segmented, T } from '@/components/ui';
 import { CITY, money, PAYOUT_OPTIONS, travelFee } from '@/lib/config';
 import { useConfirm, useToast } from '@/lib/feedback';
+import { hoursSet } from '@/lib/hours';
 import { useLayout } from '@/lib/layout';
 import { LoadingView } from '@/components/not-found';
 import { isActive, useProviderBookings, whenText } from '@/lib/bookings';
@@ -74,6 +75,13 @@ export default function Dashboard() {
   const requests = bookings.list.filter((x) => x.status === 'requested').reverse();
   const jobs = bookings.list.filter((x) => isActive(x.status) && x.status !== 'requested').reverse();
 
+  // What is still missing from the listing, most important first.
+  type Step = [title: string, why: string, label: string, href: '/biz/hours' | '/biz/photos'];
+  const setup: Step[] = [];
+  if (!b.location) setup.push(['Set your location', 'Needed for home visits, and so clients see how far you are.', 'Set location', '/biz/hours']);
+  if (!hoursSet(b.openHours)) setup.push(['Set your opening hours', 'So clients only book times when you are open.', 'Set hours', '/biz/hours']);
+  if (!b.photos.length) setup.push(['Add photos', 'Clients choose with their eyes. Show your shop and your best work.', 'Add photos', '/biz/photos']);
+
   const move = (x: Booking, status: BookingStatus, done: string) => attempt(bookings.setStatus(x.id, status), done);
   const decline = async (x: Booking) => {
     if (await confirmAsync('Decline this request?', `${x.clientName || 'The client'} is told you cannot take it. They are not charged.`, 'Decline')) {
@@ -99,7 +107,7 @@ export default function Dashboard() {
               <View key={x.id} style={{ gap: 10, paddingTop: 4 }}>
                 <T v="h2">{x.serviceName}</T>
                 <T muted>
-                  {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? 'Home visit' : 'At the shop'} · {whenText(x)}
+                  {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? `Home visit${x.km != null ? `, ${x.km.toFixed(1)} km away` : ''}` : 'At the shop'} · {whenText(x)}
                 </T>
                 {x.mode === 'home' ? (
                   <T v="small" muted>{x.address ? `Address: ${x.address}` : 'You get the address and phone number once you accept.'}</T>
@@ -222,13 +230,18 @@ export default function Dashboard() {
         </Glass>
       )}
 
-      {b.live && !b.photos.length ? (
-        <Glass style={{ padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <View style={{ flexShrink: 1, gap: 2 }}>
-            <T v="strong">Add photos to your listing</T>
-            <T v="small" muted>Clients choose with their eyes. Show your shop and your best work.</T>
-          </View>
-          <Btn small kind="light" label="Add photos" href="/biz/photos" />
+      {b.live && setup.length ? (
+        <Glass style={{ padding: 18, gap: 12 }}>
+          <T v="strong">Finish setting up your listing</T>
+          {setup.map(([title, why, label, href]) => (
+            <View key={title} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <View style={{ flexShrink: 1, gap: 2 }}>
+                <T>{title}</T>
+                <T v="small" muted>{why}</T>
+              </View>
+              <Btn small kind="light" label={label} href={href} />
+            </View>
+          ))}
         </Glass>
       ) : null}
 

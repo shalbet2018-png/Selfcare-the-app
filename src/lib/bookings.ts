@@ -51,11 +51,12 @@ type Row = {
   client_name: string; pay_method: PayMethod;
   price: number; travel_fee: number; service_fee: number; total: number; cancel_fee: number;
   cancelled_by: 'client' | 'provider' | null;
+  distance_km: number | null;
   // Empty unless this person may see it: the client always; the business only while the job is on.
   booking_contacts: Contact | Contact[] | null;
 };
 const COLUMNS = 'id, created_at, status, provider_id, provider_name, service_name, mins, mode, asap, starts_at, staff, '
-  + 'client_name, pay_method, price, travel_fee, service_fee, total, cancel_fee, cancelled_by, booking_contacts(address, client_phone)';
+  + 'client_name, pay_method, price, travel_fee, service_fee, total, cancel_fee, cancelled_by, distance_km, booking_contacts(address, client_phone)';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -71,6 +72,7 @@ function toBooking(r: Row): Booking {
     staff: r.staff, address: contact?.address ?? '', pay: r.pay_method,
     price: r.price, travel: r.travel_fee, fee: r.service_fee, total: r.total, cancelFee: r.cancel_fee || undefined,
     cancelledBy: r.cancelled_by ?? undefined, clientName: r.client_name, clientPhone: contact?.client_phone ?? '', mins: r.mins,
+    km: r.distance_km != null ? Number(r.distance_km) : undefined,
   };
 }
 
@@ -125,6 +127,8 @@ export type NewBooking = {
   providerId: string; providerName: string; serviceId: string; serviceName: string; mode: Mode;
   when: 'now' | 'later'; day: string; time: string; staff: string; address: string; pay: PayMethod;
   name: string; phone: string;
+  /** Home visits: where the client is, so the database can check the distance. */
+  lat?: number; lng?: number;
   // Shown to the client before booking; the database works out its own figures when connected.
   price: number; travel: number; fee: number; total: number;
 };
@@ -169,6 +173,7 @@ export function useMyBookings() {
       const { data, error } = await db.rpc('create_booking', {
         p_service: n.serviceId, p_mode: n.mode, p_asap: n.mode === 'home' && n.when === 'now', p_starts_at: startsAt,
         p_staff: n.staff, p_address: n.address, p_pay: n.pay, p_name: n.name, p_phone: n.phone,
+        p_lat: n.mode === 'home' ? n.lat ?? null : null, p_lng: n.mode === 'home' ? n.lng ?? null : null,
       });
       if (error) throw error;
       await live.reload();

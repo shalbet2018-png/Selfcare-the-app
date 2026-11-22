@@ -57,6 +57,24 @@ create table if not exists public.booking_contacts (
   address text not null default '',
   client_phone text not null default ''
 );
+-- Where the client shared their location for a home visit (private, like the address).
+alter table public.booking_contacts add column if not exists lat double precision;
+alter table public.booking_contacts add column if not exists lng double precision;
+-- How far the business travels for a home visit, in km. Shown to the business before it accepts.
+alter table public.bookings add column if not exists distance_km numeric(5, 1);
+
+-- Straight-line distance in km between two points (haversine).
+create or replace function private.km_between(lat1 double precision, lng1 double precision, lat2 double precision, lng2 double precision)
+returns double precision
+language sql
+immutable
+set search_path = ''
+as $$
+  select 2 * 6371 * asin(sqrt(
+    power(sin(radians(lat2 - lat1) / 2), 2)
+    + cos(radians(lat1)) * cos(radians(lat2)) * power(sin(radians(lng2 - lng1) / 2), 2)
+  ));
+$$;
 
 -- Older versions kept address and phone on bookings: move them across once, then drop them.
 do $$
@@ -95,6 +113,9 @@ $$;
 -- ---------------------------------------------------------------------------------------
 -- Booking: the only way to create one
 -- ---------------------------------------------------------------------------------------
+-- Earlier versions took no client location; remove that signature so only the current one exists.
+drop function if exists public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text);
+
 create or replace function public.create_booking(
   p_service uuid,
   p_mode text,
@@ -104,7 +125,9 @@ create or replace function public.create_booking(
   p_address text,
   p_pay text,
   p_name text,
-  p_phone text
+  p_phone text,
+  p_lat double precision default null,
+  p_lng double precision default null
 )
 returns uuid
 language plpgsql
@@ -124,8 +147,13 @@ declare
   v_capacity integer;
   v_busy integer;
   v_travel integer;
+  v_km numeric(5, 1);
+  v_local timestamp;
+  v_day text;
+  v_open jsonb;
   v_service_fee constant integer := 130;  -- SERVICE_FEE
-  v_travel_base constant integer := 150;  -- TRAVEL_FEE_BASE (per-km pricing comes with client locations)
+  v_travel_base constant integer := 150;  -- TRAVEL_FEE_BASE
+  v_travel_per_km constant integer := 50; -- TRAVEL_FEE_PER_KM
   v_active constant text[] := array['requested', 'confirmed', 'on-the-way', 'arrived'];
   v_id uuid;
 begin
@@ -169,12 +197,40 @@ begin
     end if;
   end if;
 
+  -- Opening hours (Nairobi time). {} means the business has not set them yet: any time is fine.
+  if not v_asap and p.open_hours <> '{}'::jsonb then
+    v_local := p_starts_at at time zone 'Africa/Nairobi';
+    v_day := lower(to_char(v_local, 'Dy'));
+    v_open := p.open_hours -> v_day;
+    if v_open is null then
+      raise exception '% is closed on that day. Pick another day.', p.name;
+    end if;
+    if v_local::time < (v_open ->> 0)::time
+       or (v_local + make_interval(mins => s.mins))::date <> v_local::date
+       or (v_local + make_interval(mins => s.mins))::time > (v_open ->> 1)::time then
+      raise exception '% is open % to % that day, and this service takes % minutes. Pick a time inside those hours.',
+        p.name, v_open ->> 0, v_open ->> 1, s.mins;
+    end if;
+  end if;
+
   if p_mode = 'home' then
     if v_address = '' then
       raise exception 'Add your address so they can find you.';
     end if;
     if v_phone = '' then
       raise exception 'Add a phone number so they can reach you.';
+    end if;
+    -- Home visits need both locations, so the distance and travel fee are real.
+    if p.lat is null or p.lng is null then
+      raise exception '% has not set their location yet, so home visits are not available. Book at the shop instead.', p.name;
+    end if;
+    if p_lat is null or p_lng is null or p_lat not between -90 and 90 or p_lng not between -180 and 180 then
+      raise exception 'Share your location so we can check they can reach you.';
+    end if;
+    v_km := round(private.km_between(p.lat, p.lng, p_lat, p_lng)::numeric, 1);
+    if v_km > p.radius_km then
+      raise exception '% travels up to % km for home visits, and you are % km away. Try a business closer to you, or book at the shop.',
+        p.name, p.radius_km, v_km;
     end if;
   else
     v_address := '';
@@ -212,21 +268,24 @@ begin
     end if;
   end if;
 
-  v_travel := case when p_mode = 'home' then v_travel_base else 0 end;
+  v_travel := case when p_mode = 'home' then round(v_travel_base + v_travel_per_km * v_km)::integer else 0 end;
 
   insert into public.bookings (
     client_id, provider_id, service_id, provider_name, service_name, mins,
     mode, asap, starts_at, staff, client_name, pay_method,
-    price, travel_fee, service_fee, total
+    price, travel_fee, service_fee, total, distance_km
   ) values (
     uid, p.id, s.id, p.name, s.name, s.mins,
     p_mode, v_asap, case when v_asap then null else p_starts_at end,
     v_staff, v_name, p_pay,
-    s.price, v_travel, v_service_fee, s.price + v_travel + v_service_fee
+    s.price, v_travel, v_service_fee, s.price + v_travel + v_service_fee,
+    case when p_mode = 'home' then v_km end
   )
   returning id into v_id;
 
-  insert into public.booking_contacts (booking_id, address, client_phone) values (v_id, v_address, v_phone);
+  insert into public.booking_contacts (booking_id, address, client_phone, lat, lng)
+  values (v_id, v_address, v_phone,
+          case when p_mode = 'home' then p_lat end, case when p_mode = 'home' then p_lng end);
 
   -- Remember the name and phone for next time.
   update public.profiles
@@ -322,9 +381,9 @@ grant select on public.bookings, public.booking_contacts to authenticated;
 -- Server functions (delete-account) use the service_role; newer projects don't grant it table access.
 grant select, insert, update, delete on public.bookings, public.booking_contacts to service_role;
 
-revoke execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text),
+revoke execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text, double precision, double precision),
   public.set_booking_status(uuid, text) from public, anon;
-grant execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text),
+grant execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text, double precision, double precision),
   public.set_booking_status(uuid, text) to authenticated;
 revoke execute on function public.busy_times(uuid, timestamptz, timestamptz) from public;
 grant execute on function public.busy_times(uuid, timestamptz, timestamptz) to anon, authenticated;

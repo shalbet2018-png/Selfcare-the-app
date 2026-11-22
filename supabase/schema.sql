@@ -82,6 +82,38 @@ create table if not exists public.providers (
   constraint online_needs_approval check (not online or verification = 'approved')
 );
 
+-- Opening hours, one entry per open day in Nairobi time: {"mon": ["09:00", "18:00"], "sat": ["10:00", "16:00"]}.
+-- A day left out is closed; {} means the business has not set its hours yet (any time can be booked).
+create or replace function private.valid_hours(h jsonb)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_typeof(h) = 'object' and not exists (
+    select 1 from jsonb_each(h) e
+    where e.key not in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
+       or jsonb_typeof(e.value) <> 'array' or jsonb_array_length(e.value) <> 2
+       or coalesce(e.value ->> 0, '') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+       or coalesce(e.value ->> 1, '') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+       or (e.value ->> 0) >= (e.value ->> 1)
+  );
+$$;
+
+alter table public.providers add column if not exists open_hours jsonb not null default '{}'::jsonb;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'providers_open_hours_valid') then
+    alter table public.providers add constraint providers_open_hours_valid check (private.valid_hours(open_hours));
+  end if;
+  -- The shop's location (for distance and home visits): both set or both empty, and on Earth.
+  if not exists (select 1 from pg_constraint where conname = 'providers_location_valid') then
+    alter table public.providers add constraint providers_location_valid
+      check ((lat is null) = (lng is null) and (lat is null or (lat between -90 and 90 and lng between -180 and 180)));
+  end if;
+end;
+$$;
+
 -- Details only the owner and admins may see.
 create table if not exists public.provider_private (
   provider_id uuid primary key references public.providers (id) on delete cascade,
@@ -241,8 +273,8 @@ grant update (full_name, phone) on public.profiles to authenticated;
 
 -- providers: verification is deliberately missing from insert and update.
 grant select on public.providers to anon, authenticated;
-grant insert (owner_id, kind, name, category, area, radius_km, hours, staff, lat, lng) on public.providers to authenticated;
-grant update (kind, name, category, area, radius_km, hours, staff, lat, lng, online) on public.providers to authenticated;
+grant insert (owner_id, kind, name, category, area, radius_km, hours, open_hours, staff, lat, lng) on public.providers to authenticated;
+grant update (kind, name, category, area, radius_km, hours, open_hours, staff, lat, lng, online) on public.providers to authenticated;
 -- Server functions (delete-account) use the service_role, which newer projects no longer grant
 -- table access automatically.
 grant select, insert, update, delete on public.profiles, public.providers, public.provider_private, public.services,

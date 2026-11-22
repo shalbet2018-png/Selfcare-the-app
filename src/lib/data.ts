@@ -2,6 +2,8 @@
 // can be tried out. Replace with real providers from the backend once
 // onboarding starts.
 
+import type { OpenHours } from './hours';
+
 export type Mode = 'shop' | 'home';
 export type Service = { id: string; name: string; price: number; mins: number };
 export type Provider = {
@@ -15,6 +17,8 @@ export type Provider = {
   photos?: string[];
   /** Live listings only: the account that owns the listing (it cannot book itself). */
   ownerId?: string;
+  /** Live listings only: the shop's location, how far it travels for home visits, and its opening hours. */
+  lat?: number; lng?: number; radiusKm?: number; openHours?: OpenHours;
 };
 export type Category = { id: string; label: string; blurb: string };
 

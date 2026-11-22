@@ -10,6 +10,8 @@ import { useAuth } from '@/lib/auth';
 import { slotTaken, useBusyTimes, useMyBookings, useMyContact, type BusyTime } from '@/lib/bookings';
 import { money, PAYMENT_METHODS, SERVICE_FEE, SERVICE_FEE_LABEL, travelFee, type PayMethod } from '@/lib/config';
 import { MODE_OPTIONS, type Mode, type Provider, type Service } from '@/lib/data';
+import { closedOn, fitsHours, hoursSet, hoursSummary } from '@/lib/hours';
+import { getDeviceLocation, kmBetween, roundKm } from '@/lib/location';
 import { useToast } from '@/lib/feedback';
 import { useLayout } from '@/lib/layout';
 import { useProvider } from '@/lib/providers';
@@ -57,12 +59,13 @@ export default function Book() {
 /** Slot start as a time on this device's clock. */
 const slotStart = (dayId: string, t: string) => new Date(`${dayId}T${t}:00`).getTime();
 
-/** Slots that have not started yet and still have room. */
-function slotsFor(dayId: string, busy: BusyTime[], mins: number, capacity: number, staff: string) {
+/** Slots that have not started yet, fit the opening hours, and still have room. */
+function slotsFor(dayId: string, p: Provider, busy: BusyTime[], mins: number, staff: string) {
   const now = Date.now();
   return SLOTS.filter((t) => {
     const start = slotStart(dayId, t);
-    return start > now && !slotTaken(busy, start, mins, capacity, staff);
+    // Same rules as the database: opening hours, and as many bookings at once as there are staff (at least one).
+    return start > now && fitsHours(p.openHours, dayId, t, mins) && !slotTaken(busy, start, mins, p.staff.length, staff);
   });
 }
 
@@ -86,6 +89,7 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
   const [nameEdit, setName] = useState<string | null>(null);
   const [phoneEdit, setPhone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
   const name = nameEdit ?? contact?.name ?? '';
   const phone = phoneEdit ?? contact?.phone ?? '';
@@ -95,16 +99,38 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
   // "As soon as possible" needs the business online; demo listings always are.
   const asapOk = !live || p.online !== false;
   const when = asapOk ? whenPicked : 'later';
-  // Until client locations exist, live listings have no distance, so the base travel fee applies.
-  const travel = home ? travelFee(p.km ?? 0) : 0;
+
+  // Home visits: the distance from the client's shared location decides the travel fee and whether it is in reach.
+  const here = state.location;
+  const shopKnown = p.lat != null && p.lng != null;
+  const km = live
+    ? (here && shopKnown ? roundKm(kmBetween(here, { lat: p.lat!, lng: p.lng! })) : undefined)
+    : p.km;
+  const radius = p.radiusKm ?? 50;
+  const outOfReach = live && home && km != null && km > radius;
+  const travel = home ? travelFee(km ?? 0) : 0;
   const total = sv.price + travel + SERVICE_FEE;
   const needsTime = !home || when === 'later';
-  // Same rule as the database: as many bookings at once as the business has staff (at least one).
-  const slots = slotsFor(day, busyTimes, sv.mins, p.staff.length, home ? '' : staff);
+  const slots = slotsFor(day, p, busyTimes, sv.mins, home ? '' : staff);
   const timeOk = !needsTime || slots.includes(time);
-  const missing = home && !address.trim() ? 'Add your address to continue.'
+  const missing = live && home && !shopKnown ? `${p.name} has not set their location yet, so home visits are not available. Book at the shop instead.`
+    : home && !address.trim() ? 'Add your address to continue.'
     : live && home && !phone.trim() ? 'Add a phone number so they can reach you.'
+    : live && home && km == null ? 'Share your location so we can check they can reach you.'
+    : outOfReach ? `${p.name} travels up to ${radius} km, and you are ${km} km away. Book at the shop or pick someone closer.`
     : !timeOk ? 'Pick a time to continue.' : '';
+
+  const shareLocation = async () => {
+    setLocating(true); setError('');
+    try {
+      const pt = await getDeviceLocation();
+      set({ location: { ...pt, at: new Date().toISOString() } });
+    } catch (e) {
+      setError(friendly(e));
+    } finally {
+      setLocating(false);
+    }
+  };
   const requestNow = home && when === 'now';
 
   const confirm = async () => {
@@ -114,6 +140,7 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
         providerId: p.id, providerName: p.name, serviceId: sv.id, serviceName: sv.name,
         mode, when: home ? when : 'later', day, time: needsTime ? time : '', staff, address: home ? address.trim() : '',
         pay, name: name.trim(), phone: phone.trim(), price: sv.price, travel, fee: SERVICE_FEE, total,
+        ...(home && here ? { lat: here.lat, lng: here.lng } : {}),
       });
       if (home) set({ address: address.trim() });
       toast(live ? `Request sent to ${p.name}` : requestNow ? 'Request sent to nearby providers' : 'Booking confirmed');
@@ -145,6 +172,17 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
             <View style={{ gap: 10 }}>
               <T v="h3">Your address</T>
               <Field label="Address or landmark" value={address} onChangeText={setAddress} placeholder="e.g. apartment, street, area" autoComplete="street-address" />
+              {live && shopKnown ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <Btn small kind={km == null ? 'light' : 'outline'} label={locating ? 'Finding you…' : km == null ? 'Use my location' : 'Update my location'}
+                    disabled={locating} onPress={shareLocation} />
+                  <T v="small" style={{ color: outOfReach ? STATUS_TONES.bad[1] : C.muted, flexShrink: 1 }}>
+                    {km == null ? `So we can check ${p.name} can reach you and work out the travel fee. Only shared with them if they accept.`
+                      : outOfReach ? `You are ${km} km away; ${p.name} travels up to ${radius} km.`
+                      : `You are ${km} km away. ${p.name} travels up to ${radius} km.`}
+                  </T>
+                </View>
+              ) : null}
               {asapOk ? (
                 <Segmented label="When" options={[{ id: 'now', label: 'As soon as possible' }, { id: 'later', label: 'Schedule' }]} value={when} onChange={setWhen} />
               ) : (
@@ -160,7 +198,8 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
               <T v="h3">Time</T>
               {slots.length ? (
                 <PillRow label="Time">{slots.map((t) => <Pill key={t} label={t} selected={t === time} onPress={() => setTime(t)} />)}</PillRow>
-              ) : <T v="small" muted>No free times on this day. Pick another day.</T>}
+              ) : <T v="small" muted>{closedOn(p.openHours, day) ? `${p.name} is closed on this day. Pick another day.` : 'No free times on this day. Pick another day.'}</T>}
+              {hoursSet(p.openHours) ? <T v="small" muted>Open: {hoursSummary(p.openHours)}</T> : null}
             </View>
           )}
 
@@ -212,7 +251,7 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
           <T v="h3">{sv.name}</T>
           <Lines rows={[
             { label: 'Service', value: money(sv.price) },
-            ...(home ? [{ label: p.km != null ? `Travel fee (${p.km.toFixed(1)} km)` : 'Travel fee (from)', value: money(travel) }] : []),
+            ...(home ? [{ label: km != null ? `Travel fee (${km.toFixed(1)} km)` : 'Travel fee (from)', value: money(travel) }] : []),
             { label: SERVICE_FEE_LABEL, value: money(SERVICE_FEE) },
             { label: 'Total', value: money(total), total: true },
           ]} />

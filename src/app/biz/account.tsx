@@ -7,11 +7,12 @@ import { Btn, Glass, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useBusiness, VERIFY_LABEL as VERIFY } from '@/lib/business';
 import { useConfirm, useToast } from '@/lib/feedback';
+import { hoursSet, hoursSummary } from '@/lib/hours';
 import { friendly } from '@/lib/supabase';
 import { IS_BUSINESS_APP } from '@/lib/variant';
 
 export default function Account() {
-  const { biz, live, photos } = useBusiness();
+  const { biz, live, photos, location, openHours } = useBusiness();
   const { email, signOut, deleteAccount } = useAuth();
   const toast = useToast();
   const confirmAsync = useConfirm();
@@ -45,6 +46,13 @@ export default function Account() {
             <T v="h3">Photos</T>
             <T v="small" muted>{photos.length ? `${photos.length} on your listing.` : 'None yet. Photos of your shop and work help clients choose you.'}</T>
             <Btn small kind="light" label={photos.length ? 'Manage photos' : 'Add photos'} href="/biz/photos" />
+          </Glass>,
+          <Glass key="where" style={{ padding: 22, gap: 10, flex: 1 }}>
+            <T v="h3">Location and hours</T>
+            <T v="small" muted>
+              {location ? 'Location set' : 'Location not set (home visits are off)'} · {hoursSet(openHours) ? hoursSummary(openHours) : 'Hours not set'}
+            </T>
+            <Btn small kind={location && hoursSet(openHours) ? 'outline' : 'light'} label="Set location and hours" href="/biz/hours" />
           </Glass>,
           ] : []),
           ...(live ? [

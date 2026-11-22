@@ -3,12 +3,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { PROVIDERS, type Mode, type Provider } from './data';
+import { hoursSet, hoursSummary, type OpenHours } from './hours';
+import { kmBetween, roundKm } from './location';
+import { useStore } from './store';
 import { orderedPhotos, supabase } from './supabase';
 
 type Where = 'shop' | 'home' | 'both';
 type Row = {
   id: string; kind: 'business' | 'freelancer'; name: string; category: string; area: string;
   hours: string; staff: string[]; online: boolean; owner_id: string;
+  lat: number | null; lng: number | null; radius_km: number; open_hours: OpenHours;
   provider_photos: { path: string; sort: number; created_at: string }[];
   services: { id: string; name: string; price: number; mins: number; where_offered: Where }[];
 };
@@ -24,7 +28,10 @@ export function modesFrom(services: { where_offered: Where }[]): Mode[] {
 function toProvider(r: Row): Provider {
   return {
     id: r.id, name: r.name, type: r.kind, category: r.category, area: r.area,
-    reviews: 0, hours: r.hours || 'Hours not listed yet', staff: r.staff ?? [], online: r.online,
+    reviews: 0, staff: r.staff ?? [], online: r.online,
+    hours: hoursSet(r.open_hours) ? hoursSummary(r.open_hours) : r.hours || 'Hours not listed yet',
+    openHours: r.open_hours ?? {}, radiusKm: Number(r.radius_km),
+    lat: r.lat ?? undefined, lng: r.lng ?? undefined,
     photos: orderedPhotos(r.provider_photos), ownerId: r.owner_id,
     modes: modesFrom(r.services),
     services: r.services.map(({ id, name, price, mins }) => ({ id, name, price, mins })),
@@ -50,8 +57,8 @@ export function ProvidersProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     supabase
       .from('providers')
-      .select('id, owner_id, kind, name, category, area, hours, staff, online, services(id, name, price, mins, where_offered), '
-        + 'provider_photos(path, sort, created_at)')
+      .select('id, owner_id, kind, name, category, area, hours, staff, online, lat, lng, radius_km, open_hours, '
+        + 'services(id, name, price, mins, where_offered), provider_photos(path, sort, created_at)')
       // The database already hides unapproved listings from other people; this also hides your own.
       .eq('verification', 'approved')
       .order('created_at', { ascending: false })
@@ -68,7 +75,14 @@ export function ProvidersProvider({ children }: { children: ReactNode }) {
 
   useEffect(reload, [reload]);
 
-  const value = useMemo(() => ({ providers, loading, error, live: !!supabase, reload }), [providers, loading, error, reload]);
+  // Distances from the client's last shared location; demo listings keep their made-up km.
+  const { state } = useStore();
+  const here = state.location;
+  const withKm = useMemo(() => (supabase && here
+    ? providers.map((p) => (p.lat != null && p.lng != null ? { ...p, km: roundKm(kmBetween(here, { lat: p.lat, lng: p.lng })) } : p))
+    : providers), [providers, here]);
+
+  const value = useMemo(() => ({ providers: withKm, loading, error, live: !!supabase, reload }), [withKm, loading, error, reload]);
   return <ProvidersCtx.Provider value={value}>{children}</ProvidersCtx.Provider>;
 }
 

@@ -46,6 +46,7 @@ export default function ProviderScreen() {
     ['Hours', p.hours],
     ['Area', `${p.area}, ${CITY}`],
     ...(p.staff.length ? [['Team', p.staff.join(', ')] as [string, string]] : []),
+    ...(p.modes.includes('home') && p.radiusKm != null ? [['Home visits', `Up to ${p.radiusKm} km away`] as [string, string]] : []),
     ['Verification', 'Permit checked by Selfcare'],
   ];
 

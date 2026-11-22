@@ -46,6 +46,12 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Selfcare uses your location when you tap \"Use my location\", to show how far businesses are and to check a home visit is within reach."
+        }
       ]
     ],
     "experiments": {
