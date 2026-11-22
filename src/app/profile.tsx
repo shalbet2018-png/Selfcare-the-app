@@ -12,7 +12,7 @@ import { BACKEND_ON, friendly } from '@/lib/supabase';
 
 export default function Profile() {
   const { state, reset } = useStore();
-  const { email, signOut } = useAuth();
+  const { email, signOut, deleteAccount } = useAuth();
   const { isAdmin } = useIsAdmin();
   const toast = useToast();
   const confirmAsync = useConfirm();
@@ -21,6 +21,19 @@ export default function Profile() {
       reset();
       toast('Cleared');
       router.navigate('/');
+    }
+  };
+  const removeAccount = async () => {
+    if (await confirmAsync('Delete your account?',
+      'This permanently deletes your account, your bookings history, and any business listing, photos and documents. It cannot be undone.',
+      'Delete for good')) {
+      try {
+        await deleteAccount();
+        toast('Your account has been deleted');
+        router.navigate('/');
+      } catch (e) {
+        toast(friendly(e));
+      }
     }
   };
   return (
@@ -34,7 +47,12 @@ export default function Profile() {
               <T muted>{email ? `Signed in as ${email}` : 'Sign in with your email to keep your details safe across devices.'}</T>
               <View>
                 {email
-                  ? <Btn label="Sign out" kind="ghost" onPress={() => signOut().then(() => toast('Signed out'), (e) => toast(friendly(e)))} />
+                  ? (
+                    <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                      <Btn label="Sign out" kind="ghost" onPress={() => signOut().then(() => toast('Signed out'), (e) => toast(friendly(e)))} />
+                      <Btn label="Delete my account" kind="outline" onPress={removeAccount} />
+                    </View>
+                  )
                   : <Btn label="Sign in" href={{ pathname: '/sign-in', params: { next: '/profile' } }} />}
               </View>
             </Glass>,

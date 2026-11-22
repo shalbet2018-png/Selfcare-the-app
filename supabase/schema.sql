@@ -243,7 +243,14 @@ grant update (full_name, phone) on public.profiles to authenticated;
 grant select on public.providers to anon, authenticated;
 grant insert (owner_id, kind, name, category, area, radius_km, hours, staff, lat, lng) on public.providers to authenticated;
 grant update (kind, name, category, area, radius_km, hours, staff, lat, lng, online) on public.providers to authenticated;
-grant delete on public.providers to authenticated;
+-- Server functions (delete-account) use the service_role, which newer projects no longer grant
+-- table access automatically.
+grant select, insert, update, delete on public.profiles, public.providers, public.provider_private, public.services,
+  public.provider_documents, public.provider_photos to service_role;
+
+-- No direct delete: a listing goes only with its account (the delete-account function), which also
+-- removes its files from storage, so no ID documents are left behind.
+revoke delete on public.providers from authenticated;
 
 -- provider_private: the owner picks a payout schedule; review notes come from admins only.
 grant select on public.provider_private to authenticated;
@@ -286,8 +293,30 @@ drop policy if exists "edit own provider" on public.providers;
 create policy "edit own provider" on public.providers for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 drop policy if exists "delete own provider" on public.providers;
-create policy "delete own provider" on public.providers for delete to authenticated
-  using (owner_id = (select auth.uid()));
+
+-- An approved (or waiting) listing whose identity changes goes back to Selfcare for review:
+-- a new name, main service or area waits for re-approval; switching between business and
+-- freelancer also needs that kind's documents again. It is hidden from clients meanwhile.
+create or replace function private.recheck_listing()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if old.verification in ('submitted', 'in-review', 'approved')
+     and (new.kind is distinct from old.kind or new.name is distinct from old.name
+          or new.category is distinct from old.category or new.area is distinct from old.area) then
+    new.verification := case when new.kind is distinct from old.kind then 'not-started' else 'submitted' end;
+    new.online := false;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists recheck_listing on public.providers;
+create trigger recheck_listing
+  before update on public.providers
+  for each row execute function private.recheck_listing();
 
 -- provider_private
 drop policy if exists "read own private details" on public.provider_private;
@@ -319,11 +348,13 @@ create policy "see photos" on public.provider_photos for select to anon, authent
   using (private.provider_is_public(provider_id) or private.owns_provider(provider_id) or private.is_admin());
 drop policy if exists "manage own photos" on public.provider_photos;
 drop policy if exists "add own photos" on public.provider_photos;
+-- A record may only point at a file inside the owner's own folder ("<user id>/...").
 create policy "add own photos" on public.provider_photos for insert to authenticated
-  with check (private.owns_provider(provider_id));
+  with check (private.owns_provider(provider_id) and (storage.foldername(path))[1] = (select auth.uid())::text);
 drop policy if exists "edit own photos" on public.provider_photos;
 create policy "edit own photos" on public.provider_photos for update to authenticated
-  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
+  using (private.owns_provider(provider_id))
+  with check (private.owns_provider(provider_id) and (storage.foldername(path))[1] = (select auth.uid())::text);
 drop policy if exists "remove own photos" on public.provider_photos;
 create policy "remove own photos" on public.provider_photos for delete to authenticated
   using (private.owns_provider(provider_id));
@@ -334,10 +365,11 @@ create policy "read own documents" on public.provider_documents for select to au
   using (private.owns_provider(provider_id) or private.is_admin());
 drop policy if exists "add own documents" on public.provider_documents;
 create policy "add own documents" on public.provider_documents for insert to authenticated
-  with check (private.owns_provider(provider_id));
+  with check (private.owns_provider(provider_id) and (storage.foldername(path))[1] = (select auth.uid())::text);
 drop policy if exists "replace own documents" on public.provider_documents;
 create policy "replace own documents" on public.provider_documents for update to authenticated
-  using (private.owns_provider(provider_id)) with check (private.owns_provider(provider_id));
+  using (private.owns_provider(provider_id))
+  with check (private.owns_provider(provider_id) and (storage.foldername(path))[1] = (select auth.uid())::text);
 drop policy if exists "remove own documents" on public.provider_documents;
 create policy "remove own documents" on public.provider_documents for delete to authenticated
   using (private.owns_provider(provider_id));

@@ -7,7 +7,7 @@ import { Screen } from '@/components/screen';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Back, Btn, Field, Glass, Lines, Pill, PillRow, Segmented, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { useMyBookings, useMyContact } from '@/lib/bookings';
+import { slotTaken, useBusyTimes, useMyBookings, useMyContact, type BusyTime } from '@/lib/bookings';
 import { money, PAYMENT_METHODS, SERVICE_FEE, SERVICE_FEE_LABEL, travelFee, type PayMethod } from '@/lib/config';
 import { MODE_OPTIONS, type Mode, type Provider, type Service } from '@/lib/data';
 import { useToast } from '@/lib/feedback';
@@ -39,20 +39,38 @@ export default function Book() {
       body="Sign in with your email first, so the business can confirm your booking and you can follow it from any device." />;
   }
   if (!p || !sv) return loading || !ready ? <LoadingView /> : <NotFoundView />;
+  if (userId && p.ownerId === userId) {
+    return (
+      <Screen theme={themeForCategory(p.category)}>
+        <Back href={{ pathname: '/provider/[id]', params: { id: p.id } }} label={p.name} />
+        <T v="h1">This is your listing</T>
+        <Glass style={{ padding: 22, gap: 12, maxWidth: 560 }}>
+          <T muted>You cannot book your own services. To test a booking, sign in with a different email on another device.</T>
+          <Btn label="Go to your dashboard" href="/biz" />
+        </Glass>
+      </Screen>
+    );
+  }
   return <BookForm p={p} sv={sv} />;
 }
 
-/** Today's slots that have already started are left out. */
-function slotsFor(dayId: string, todayId: string) {
-  if (dayId !== todayId) return SLOTS;
-  const now = new Date();
-  return SLOTS.filter((t) => Number(t.slice(0, 2)) > now.getHours());
+/** Slot start as a time on this device's clock. */
+const slotStart = (dayId: string, t: string) => new Date(`${dayId}T${t}:00`).getTime();
+
+/** Slots that have not started yet and still have room. */
+function slotsFor(dayId: string, busy: BusyTime[], mins: number, capacity: number, staff: string) {
+  const now = Date.now();
+  return SLOTS.filter((t) => {
+    const start = slotStart(dayId, t);
+    return start > now && !slotTaken(busy, start, mins, capacity, staff);
+  });
 }
 
 function BookForm({ p, sv }: { p: Provider; sv: Service }) {
   const { state, set } = useStore();
   const bookings = useMyBookings();
   const contact = useMyContact();
+  const busyTimes = useBusyTimes(p.id);
   const toast = useToast();
   const { wide } = useLayout();
   const days = useMemo(() => nextDays(7), []);
@@ -81,7 +99,8 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
   const travel = home ? travelFee(p.km ?? 0) : 0;
   const total = sv.price + travel + SERVICE_FEE;
   const needsTime = !home || when === 'later';
-  const slots = slotsFor(day, days[0].id);
+  // Same rule as the database: as many bookings at once as the business has staff (at least one).
+  const slots = slotsFor(day, busyTimes, sv.mins, p.staff.length, home ? '' : staff);
   const timeOk = !needsTime || slots.includes(time);
   const missing = home && !address.trim() ? 'Add your address to continue.'
     : live && home && !phone.trim() ? 'Add a phone number so they can reach you.'
@@ -141,7 +160,7 @@ function BookForm({ p, sv }: { p: Provider; sv: Service }) {
               <T v="h3">Time</T>
               {slots.length ? (
                 <PillRow label="Time">{slots.map((t) => <Pill key={t} label={t} selected={t === time} onPress={() => setTime(t)} />)}</PillRow>
-              ) : <T v="small" muted>No times left today. Pick another day.</T>}
+              ) : <T v="small" muted>No free times on this day. Pick another day.</T>}
             </View>
           )}
 

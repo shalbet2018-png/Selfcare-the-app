@@ -21,6 +21,7 @@
     "pages",
     "dist",
     "android",
-    "ios"
+    "ios",
+    "supabase/functions"
   ]
 }

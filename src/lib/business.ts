@@ -198,9 +198,13 @@ export function useBusiness() {
       const path = `${userId}/${kind}-${Date.now()}.${ext}`;
       const body = await (await fetch(file.uri)).arrayBuffer();
       check(await db.storage.from('provider-documents').upload(path, body, { contentType: file.mimeType ?? undefined }));
-      // One document per kind: drop the old record, then add the new one.
+      // One document per kind: drop the old record, add the new one, then delete the old file.
+      // These are ID documents, so a replaced one should not linger in storage.
+      const { data: old } = check(await db.from('provider_documents').select('path').eq('provider_id', me.id).eq('kind', kind));
       check(await db.from('provider_documents').delete().eq('provider_id', me.id).eq('kind', kind));
       check(await db.from('provider_documents').insert({ provider_id: me.id, kind, path }));
+      const stale = (old ?? []).map((d) => d.path).filter((p) => p !== path);
+      if (stale.length) await db.storage.from('provider-documents').remove(stale);
     },
 
     submitForVerification: async () => {

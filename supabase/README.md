@@ -33,10 +33,11 @@ Until these steps are done, the app runs on built-in demo data, the same as befo
    ```
 
    Without `{{ .Token }}` the email only has a link, and the app needs the code.
-5. **Connect the app.** Open **Project Settings**, then **API Keys**. Copy `.env.example` to `.env.local` in the app folder and fill in:
+5. **Deploy the delete-account function.** In the dashboard, open **Edge Functions**, then **Deploy a new function**, then **Via Editor**. Name it `delete-account`, paste [`functions/delete-account/index.ts`](functions/delete-account/index.ts), turn **off** "Verify JWT" (the function checks the sign-in itself, and the web app needs this to reach it), and deploy. It uses the project's secret key, which Supabase provides to functions automatically; nothing to paste.
+6. **Connect the app.** Open **Project Settings**, then **API Keys**. Copy `.env.example` to `.env.local` in the app folder and fill in:
    - `EXPO_PUBLIC_SUPABASE_URL`: the project URL
    - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: the **publishable** key, starting `sb_publishable_`. Never put the secret key in the app.
-6. **Restart the dev server** (`npx expo start`) so it picks up the new values.
+7. **Restart the dev server** (`npx expo start`) so it picks up the new values.
 
 ### Email limits
 

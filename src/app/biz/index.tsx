@@ -101,7 +101,9 @@ export default function Dashboard() {
                 <T muted>
                   {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? 'Home visit' : 'At the shop'} · {whenText(x)}
                 </T>
-                {x.mode === 'home' ? <T v="small" muted>Address: {x.address}</T> : null}
+                {x.mode === 'home' ? (
+                  <T v="small" muted>{x.address ? `Address: ${x.address}` : 'You get the address and phone number once you accept.'}</T>
+                ) : null}
                 {x.staff ? <T v="small" muted>Asked for: {x.staff}</T> : null}
                 <View style={{ backgroundColor: veil(0.06), borderRadius: 16, padding: 14 }}>
                   <Lines rows={[
@@ -260,7 +262,7 @@ export default function Dashboard() {
                 <View style={{ flexShrink: 1, gap: 2 }}>
                   <T v="strong">{x.serviceName} · {whenText(x)}</T>
                   <T v="small" muted>
-                    {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? x.address : 'At the shop'} · {money(x.price + x.travel)}
+                    {x.clientName || 'Client'}{x.clientPhone ? ` · ${x.clientPhone}` : ''} · {x.mode === 'home' ? x.address || 'Home visit' : 'At the shop'} · {money(x.price + x.travel)}
                   </T>
                   {x.status !== 'confirmed' ? <T v="small" accent>{x.status === 'on-the-way' ? 'On the way' : 'Arrived'}</T> : null}
                 </View>

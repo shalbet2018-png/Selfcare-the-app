@@ -13,6 +13,8 @@ export type Provider = {
   online?: boolean;
   /** Live listings only: photo addresses, cover first. */
   photos?: string[];
+  /** Live listings only: the account that owns the listing (it cannot book itself). */
+  ownerId?: string;
 };
 export type Category = { id: string; label: string; blurb: string };
 

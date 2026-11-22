@@ -44,29 +44,33 @@ export const isActive = (s: BookingStatus) => s !== 'done' && s !== 'cancelled';
 // ---------------------------------------------------------------------------------------
 // Rows from the database
 // ---------------------------------------------------------------------------------------
+type Contact = { address: string; client_phone: string };
 type Row = {
   id: string; created_at: string; status: BookingStatus; provider_id: string; provider_name: string; service_name: string;
-  mins: number; mode: Mode; asap: boolean; starts_at: string | null; staff: string; address: string;
-  client_name: string; client_phone: string; pay_method: PayMethod;
+  mins: number; mode: Mode; asap: boolean; starts_at: string | null; staff: string;
+  client_name: string; pay_method: PayMethod;
   price: number; travel_fee: number; service_fee: number; total: number; cancel_fee: number;
   cancelled_by: 'client' | 'provider' | null;
+  // Empty unless this person may see it: the client always; the business only while the job is on.
+  booking_contacts: Contact | Contact[] | null;
 };
-const COLUMNS = 'id, created_at, status, provider_id, provider_name, service_name, mins, mode, asap, starts_at, staff, address, '
-  + 'client_name, client_phone, pay_method, price, travel_fee, service_fee, total, cancel_fee, cancelled_by';
+const COLUMNS = 'id, created_at, status, provider_id, provider_name, service_name, mins, mode, asap, starts_at, staff, '
+  + 'client_name, pay_method, price, travel_fee, service_fee, total, cancel_fee, cancelled_by, booking_contacts(address, client_phone)';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 function toBooking(r: Row): Booking {
   const at = r.starts_at ? new Date(r.starts_at) : null;
+  const contact = Array.isArray(r.booking_contacts) ? r.booking_contacts[0] : r.booking_contacts;
   return {
     id: r.id, createdAt: r.created_at, status: r.status,
     providerId: r.provider_id, providerName: r.provider_name, serviceName: r.service_name,
     mode: r.mode, when: r.asap ? 'now' : 'later',
     day: at ? `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` : '',
     time: at ? `${pad(at.getHours())}:${pad(at.getMinutes())}` : '',
-    staff: r.staff, address: r.address, pay: r.pay_method,
+    staff: r.staff, address: contact?.address ?? '', pay: r.pay_method,
     price: r.price, travel: r.travel_fee, fee: r.service_fee, total: r.total, cancelFee: r.cancel_fee || undefined,
-    cancelledBy: r.cancelled_by ?? undefined, clientName: r.client_name, clientPhone: r.client_phone, mins: r.mins,
+    cancelledBy: r.cancelled_by ?? undefined, clientName: r.client_name, clientPhone: contact?.client_phone ?? '', mins: r.mins,
   };
 }
 
@@ -187,6 +191,41 @@ export function useProviderBookings(providerId: string | null) {
     reload: live.reload,
     setStatus: async (id: string, status: BookingStatus) => { await setStatus(id, status); await live.reload(); },
   };
+}
+
+export type BusyTime = { start: number; end: number; staff: string };
+
+/** Times a business is already booked over the next week, so the booking form can hide them. */
+export function useBusyTimes(providerId: string) {
+  const [busy, setBusy] = useState<{ id: string; list: BusyTime[] } | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    let stale = false;
+    const from = new Date();
+    const to = new Date(from.getTime() + 8 * 24 * 3600 * 1000);
+    supabase.rpc('busy_times', { p_provider: providerId, p_from: from.toISOString(), p_to: to.toISOString() })
+      .then(({ data }) => {
+        if (stale) return;
+        const rows = (data ?? []) as { starts_at: string; mins: number; staff: string }[];
+        setBusy({
+          id: providerId,
+          list: rows.map((r) => {
+            const start = new Date(r.starts_at).getTime();
+            return { start, end: start + r.mins * 60_000, staff: r.staff };
+          }),
+        });
+      });
+    return () => { stale = true; };
+  }, [providerId]);
+  return busy && busy.id === providerId ? busy.list : [];
+}
+
+/** True when a slot is already full: that staff member is booked, or every chair is. */
+export function slotTaken(busy: BusyTime[], start: number, mins: number, capacity: number, staff: string) {
+  const end = start + mins * 60_000;
+  const overlapping = busy.filter((b) => b.start < end && b.end > start);
+  if (staff && overlapping.some((b) => b.staff === staff)) return true;
+  return overlapping.length >= Math.max(1, capacity);
 }
 
 /** The signed-in person's saved name and phone, to fill in the booking form. */

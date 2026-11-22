@@ -1,15 +1,20 @@
 -- Selfcare backend, step 2: bookings. Run after schema.sql.
 --
 -- How to use: Supabase dashboard -> SQL Editor -> New query -> paste this whole file -> Run.
--- Safe to run again after edits: it only creates what is missing and replaces rules and functions.
+-- Safe to run again after edits: it only creates what is missing, replaces rules and functions,
+-- and moves data from older versions of this file.
 --
 -- Rules the database enforces:
 --   * A client books through create_booking(), which looks up the real price and adds the fees.
---     Nobody can write a booking row or a price directly.
+--     Nobody can write a booking row or a price directly, and nobody can book their own listing.
+--   * A time can only be booked while the business has room: as many overlapping bookings as it
+--     has staff (at least one), and none for a staff member who is already booked then.
 --   * Every booking starts as a request the business accepts or declines.
 --   * Status moves one step at a time through set_booking_status(): the business accepts, heads
 --     out, arrives and finishes; the client can cancel, with a fee once the business has arrived.
 --   * A client sees only their own bookings, a business only bookings for its listing, admins all.
+--   * The client's address and phone live in booking_contacts. The business sees them only from
+--     accepting until the job ends; before accepting, after declining and after the job, they are hidden.
 --
 -- Fees must match src/lib/config.ts: SERVICE_FEE, TRAVEL_FEE_BASE and ARRIVED_CANCEL_FEE.
 
@@ -26,9 +31,7 @@ create table if not exists public.bookings (
   asap boolean not null default false,
   starts_at timestamptz,
   staff text not null default '',
-  address text not null default '',
   client_name text not null default '',
-  client_phone text not null default '',
   pay_method text not null check (pay_method in ('mpesa', 'card', 'paypal')),
   price integer not null check (price >= 0),
   travel_fee integer not null default 0 check (travel_fee >= 0),
@@ -41,12 +44,53 @@ create table if not exists public.bookings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint booking_has_time check (asap or starts_at is not null),
-  constraint asap_is_home check (not asap or mode = 'home'),
-  constraint home_has_address check (mode <> 'home' or char_length(trim(address)) > 0)
+  constraint asap_is_home check (not asap or mode = 'home')
 );
 create index if not exists bookings_client_idx on public.bookings (client_id, created_at desc);
 create index if not exists bookings_provider_idx on public.bookings (provider_id, created_at desc);
 create index if not exists bookings_service_idx on public.bookings (service_id);
+create index if not exists bookings_provider_time_idx on public.bookings (provider_id, starts_at);
+
+-- The client's contact details for one booking, kept apart so they can be hidden on their own.
+create table if not exists public.booking_contacts (
+  booking_id uuid primary key references public.bookings (id) on delete cascade,
+  address text not null default '',
+  client_phone text not null default ''
+);
+
+-- Older versions kept address and phone on bookings: move them across once, then drop them.
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'bookings' and column_name = 'address') then
+    execute $m$
+      insert into public.booking_contacts (booking_id, address, client_phone)
+      select id, address, client_phone from public.bookings
+      on conflict (booking_id) do nothing
+    $m$;
+    alter table public.bookings drop constraint if exists home_has_address;
+    alter table public.bookings drop column address;
+    alter table public.bookings drop column if exists client_phone;
+  end if;
+end;
+$$;
+
+-- True when the signed-in person may see this booking's address and phone.
+create or replace function private.can_see_booking_contact(p_booking uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.bookings b
+    where b.id = p_booking
+      and (b.client_id = (select auth.uid())
+           or (private.owns_provider(b.provider_id) and b.status in ('confirmed', 'on-the-way', 'arrived'))
+           or private.is_admin())
+  );
+$$;
 
 -- ---------------------------------------------------------------------------------------
 -- Booking: the only way to create one
@@ -71,13 +115,18 @@ declare
   uid uuid := (select auth.uid());
   s public.services%rowtype;
   p public.providers%rowtype;
+  v_asap boolean := coalesce(p_asap, false);
   v_staff text := coalesce(trim(p_staff), '');
   v_address text := coalesce(trim(p_address), '');
   v_name text := left(coalesce(trim(p_name), ''), 80);
   v_phone text := left(coalesce(trim(p_phone), ''), 30);
+  v_end timestamptz;
+  v_capacity integer;
+  v_busy integer;
   v_travel integer;
   v_service_fee constant integer := 130;  -- SERVICE_FEE
   v_travel_base constant integer := 150;  -- TRAVEL_FEE_BASE (per-km pricing comes with client locations)
+  v_active constant text[] := array['requested', 'confirmed', 'on-the-way', 'arrived'];
   v_id uuid;
 begin
   if uid is null then
@@ -91,6 +140,9 @@ begin
   if not found or p.verification <> 'approved' then
     raise exception 'This service is not available any more.';
   end if;
+  if p.owner_id = uid then
+    raise exception 'You cannot book your own listing.';
+  end if;
 
   if p_mode not in ('shop', 'home')
      or (s.where_offered = 'shop' and p_mode <> 'shop')
@@ -101,7 +153,7 @@ begin
     raise exception 'Choose how to pay.';
   end if;
 
-  if coalesce(p_asap, false) then
+  if v_asap then
     if p_mode <> 'home' then
       raise exception 'Shop bookings need a time.';
     end if;
@@ -134,19 +186,47 @@ begin
     v_staff := '';
   end if;
 
+  -- One booking at a time per business, so two clients cannot take the same last slot.
+  perform pg_advisory_xact_lock(hashtextextended(p.id::text, 0));
+  v_capacity := greatest(1, coalesce(array_length(p.staff, 1), 0));
+  if v_asap then
+    select count(*) into v_busy from public.bookings b
+    where b.provider_id = p.id and b.asap and b.status = any (v_active);
+    if v_busy >= v_capacity then
+      raise exception '% is busy with other requests right now. Pick a time instead.', p.name;
+    end if;
+  else
+    v_end := p_starts_at + make_interval(mins => s.mins);
+    if v_staff <> '' and exists (
+      select 1 from public.bookings b
+      where b.provider_id = p.id and b.staff = v_staff and not b.asap and b.status = any (v_active)
+        and b.starts_at < v_end and b.starts_at + make_interval(mins => b.mins) > p_starts_at
+    ) then
+      raise exception '% is already booked at that time. Pick another time or anyone.', v_staff;
+    end if;
+    select count(*) into v_busy from public.bookings b
+    where b.provider_id = p.id and not b.asap and b.status = any (v_active)
+      and b.starts_at < v_end and b.starts_at + make_interval(mins => b.mins) > p_starts_at;
+    if v_busy >= v_capacity then
+      raise exception '% is fully booked at that time. Pick another time.', p.name;
+    end if;
+  end if;
+
   v_travel := case when p_mode = 'home' then v_travel_base else 0 end;
 
   insert into public.bookings (
     client_id, provider_id, service_id, provider_name, service_name, mins,
-    mode, asap, starts_at, staff, address, client_name, client_phone, pay_method,
+    mode, asap, starts_at, staff, client_name, pay_method,
     price, travel_fee, service_fee, total
   ) values (
     uid, p.id, s.id, p.name, s.name, s.mins,
-    p_mode, coalesce(p_asap, false), case when coalesce(p_asap, false) then null else p_starts_at end,
-    v_staff, v_address, v_name, v_phone, p_pay,
+    p_mode, v_asap, case when v_asap then null else p_starts_at end,
+    v_staff, v_name, p_pay,
     s.price, v_travel, v_service_fee, s.price + v_travel + v_service_fee
   )
   returning id into v_id;
+
+  insert into public.booking_contacts (booking_id, address, client_phone) values (v_id, v_address, v_phone);
 
   -- Remember the name and phone for next time.
   update public.profiles
@@ -156,6 +236,25 @@ begin
 
   return v_id;
 end;
+$$;
+
+-- When a business is taken, for the booking form to hide those times. Times only: no names or contacts.
+create or replace function public.busy_times(p_provider uuid, p_from timestamptz, p_to timestamptz)
+returns table (starts_at timestamptz, mins integer, staff text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select b.starts_at, b.mins, b.staff
+  from public.bookings b
+  join public.providers p on p.id = b.provider_id and p.verification = 'approved'
+  where b.provider_id = p_provider
+    and not b.asap
+    and b.status in ('requested', 'confirmed', 'on-the-way', 'arrived')
+    and b.starts_at < p_to
+    and b.starts_at + make_interval(mins => b.mins) > p_from
+    and p_to - p_from <= interval '62 days';
 $$;
 
 -- ---------------------------------------------------------------------------------------
@@ -218,19 +317,28 @@ $$;
 -- ---------------------------------------------------------------------------------------
 -- Who may do what
 -- ---------------------------------------------------------------------------------------
-revoke all on public.bookings from anon, authenticated;
-grant select on public.bookings to authenticated;
+revoke all on public.bookings, public.booking_contacts from anon, authenticated;
+grant select on public.bookings, public.booking_contacts to authenticated;
+-- Server functions (delete-account) use the service_role; newer projects don't grant it table access.
+grant select, insert, update, delete on public.bookings, public.booking_contacts to service_role;
 
 revoke execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text),
   public.set_booking_status(uuid, text) from public, anon;
 grant execute on function public.create_booking(uuid, text, boolean, timestamptz, text, text, text, text, text),
   public.set_booking_status(uuid, text) to authenticated;
+revoke execute on function public.busy_times(uuid, timestamptz, timestamptz) from public;
+grant execute on function public.busy_times(uuid, timestamptz, timestamptz) to anon, authenticated;
 
 alter table public.bookings enable row level security;
+alter table public.booking_contacts enable row level security;
 
 drop policy if exists "see own bookings" on public.bookings;
 create policy "see own bookings" on public.bookings for select to authenticated
   using (client_id = (select auth.uid()) or private.owns_provider(provider_id) or private.is_admin());
+
+drop policy if exists "see contact when allowed" on public.booking_contacts;
+create policy "see contact when allowed" on public.booking_contacts for select to authenticated
+  using (private.can_see_booking_contact(booking_id));
 
 -- Live updates: the app listens for changes to bookings it is allowed to see.
 do $$

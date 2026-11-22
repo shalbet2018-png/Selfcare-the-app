@@ -58,8 +58,14 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
   const [error, setError] = useState('');
 
   const first = !biz.registered;
-  // Documents are needed to (re)apply: on first registration and after a rejection.
-  const applying = first || biz.verification === 'rejected' || biz.verification === 'not-started';
+  // The database sends a listed business back to review when these change (supabase/schema.sql,
+  // recheck_listing); switching business <-> freelancer also needs that kind's documents.
+  const listed = !first && ['submitted', 'in-review', 'approved'].includes(biz.verification);
+  const kindChanged = !first && kind !== biz.kind;
+  const identityChanged = kindChanged || name.trim() !== biz.name || category !== biz.category || area.trim() !== biz.area;
+  const backToReview = b.live && listed && identityChanged;
+  // Documents are needed to (re)apply: on first registration, after a rejection, and on a change of kind.
+  const applying = first || biz.verification === 'rejected' || biz.verification === 'not-started' || (b.live && kindChanged);
   const docs = DOCS_FOR[kind];
   // Changing between business and freelancer needs the other kind's documents, so only count matching ones.
   const onFile = (k: DocKind) => b.docsOnFile.includes(k);
@@ -79,7 +85,8 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
         if (f) await b.uploadDocument(k, f);
       }
       if (applying) await b.submitForVerification();
-      toast(applying ? 'Submitted. We will check your documents.' : 'Saved');
+      toast(applying ? 'Submitted. We will check your documents.'
+        : backToReview ? 'Saved. Selfcare will review the changes before clients see them.' : 'Saved');
       router.replace(first ? '/biz/services' : '/biz');
     } catch (e) {
       setError(friendly(e));
@@ -127,6 +134,15 @@ function RegisterForm({ b }: { b: ReturnType<typeof useBusiness> }) {
         </View>
         <Btn kind="light" label={busy ? 'Saving…' : applying ? 'Submit for verification' : 'Save'} disabled={!!missing || busy} onPress={submit} />
         {missing ? <T v="small" muted>{missing}</T> : null}
+        {backToReview && !missing ? (
+          <View role="alert" style={{ backgroundColor: STATUS_TONES.waiting[0], borderRadius: 12, padding: 12 }}>
+            <T v="small" style={{ color: STATUS_TONES.waiting[1] }}>
+              {kindChanged
+                ? `Switching to ${kind === 'freelancer' ? 'freelancer' : 'business'} needs those documents checked. Your listing is hidden from clients until Selfcare approves it again.`
+                : 'Changing your name, main service or area sends your listing back to Selfcare for review. It is hidden from clients until approved again.'}
+            </T>
+          </View>
+        ) : null}
         {error ? <View role="alert"><T v="small" style={{ color: STATUS_TONES.bad[1] }}>{error}</T></View> : null}
       </Glass>
     </Screen>
